@@ -25,17 +25,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [activeTab, setActiveTab] = useState<'home' | 'timeline' | 'memory' | 'settings'>('home');
   
-  // Custom interactive execution workflow
+  // Chief of Staff states
   const [isExecuting, setIsExecuting] = useState(false);
   const [commandInput, setCommandInput] = useState('');
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   
-  // Goals loaded from onboarding configuration
-  const [goals] = useState<string[]>(initialData.context.goals || []);
-  const dominantObjective = goals[0] || 'Build high-growth engine';
+  // Goals loaded from onboarding
+  const dominantObjective = initialData.context.goals?.[0] || 'Acquire first 3 clients';
   
-  // Today's constraint
-  const [constraint, setConstraint] = useState<string>('You have only 6 qualified prospects.');
+  // The daily authoritative directive
+  const defaultDirective = "Today's directive: Founder outreach is your focus. The gym moves to 7:30 PM. Notifications are silenced until 2 PM. No feature work until you've contacted 15 founders.";
+  const [directive, setDirective] = useState<string>(defaultDirective);
 
   // Checklists for missions
   const [missions, setMissions] = useState<MissionTask[]>([
@@ -44,7 +44,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
     { id: 'm3', text: 'Book 1 discovery call.', completed: false }
   ]);
 
-  // History timeline
+  // Evening Reflection states
+  const [reflectionAnswer, setReflectionAnswer] = useState<'yes' | 'no' | 'partly' | null>(null);
+  const [reflectionWhy, setReflectionWhy] = useState('');
+  const [showReflectionCard, setShowReflectionCard] = useState(false);
+
+  // History timeline logs
   const [historyLogs, setHistoryLogs] = useState<Array<{ id: string; time: string; text: string }>>([
     { id: 'h1', time: '08:00 AM', text: 'William auto briefing compiled.' },
     { id: 'h2', time: 'Yesterday', text: 'Completed initial workspace setup configuration.' }
@@ -52,6 +57,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
 
   // Constitution rules toggles
   const [rules, setRules] = useState<ConstitutionRule[]>(initialData.rules);
+
+  // Calculate completion percentage to scale the breathing ambient glow
+  const completedCount = missions.filter(m => m.completed).length;
+  const totalCount = missions.length;
+  const completionRatio = totalCount > 0 ? completedCount / totalCount : 0;
+  
+  // Glow size goes from 280px (0% complete) to 700px (100% complete)
+  const glowSize = 280 + completionRatio * 420;
 
   // Keyboard shortcut listener for Ctrl+K / Cmd+K and sequential navigation keys
   useEffect(() => {
@@ -66,19 +79,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
         return;
       }
 
-      // Skip sequential keyboard hooks if user is typing in a text area or input field
+      // Skip sequential keyboard hooks if user is typing
       const target = e.target as HTMLElement;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
         return;
       }
 
-      // Sequential key capture (e.g. press 'g' then 'h')
       keyBuffer += e.key.toLowerCase();
       window.clearTimeout(bufferTimeout);
       
       bufferTimeout = window.setTimeout(() => {
         keyBuffer = '';
-      }, 800); // 800ms sequence gap
+      }, 800); // 800ms gap
 
       if (keyBuffer === 'gh') {
         setActiveTab('home');
@@ -138,7 +150,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
     };
     setHistoryLogs([newLog, ...historyLogs]);
 
-    // Transition focal tasks
+    // Complete current focal task
     const firstUncompletedIdx = missions.findIndex(m => !m.completed);
     if (firstUncompletedIdx !== -1) {
       const updatedMissions = [...missions];
@@ -147,7 +159,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
 
       if (updatedMissions.every(m => m.completed)) {
         setIsExecuting(false);
-        setConstraint('Objective missions fully met. Zero blockages remaining.');
+        setShowReflectionCard(true);
       }
     }
   };
@@ -179,6 +191,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
             setMissions(updatedMissions);
             if (updatedMissions.every(m => m.completed)) {
               setIsExecuting(false);
+              setShowReflectionCard(true);
             }
           }
         } else {
@@ -193,31 +206,69 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
     }
   };
 
+  const handleSubmitReflection = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reflectionAnswer || !reflectionWhy.trim()) return;
+
+    const timestamp = new Date().toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const newLog = {
+      id: `ref_${Date.now()}`,
+      time: timestamp,
+      text: `Reflection: Day moved mission forward? ${reflectionAnswer.toUpperCase()}. "${reflectionWhy}"`
+    };
+
+    setHistoryLogs([newLog, ...historyLogs]);
+    setReflectionAnswer(null);
+    setReflectionWhy('');
+    setShowReflectionCard(false);
+
+    // Reset daily tasks
+    setMissions(missions.map(m => ({ ...m, completed: false })));
+
+    // Generate dynamic next-day directive
+    const directives = [
+      "Tomorrow's directive: Outreach targets met. Shift focus to product engineering on Atlas. Review developer specifications at 8:00 AM.",
+      "Tomorrow's directive: Constraints are tightening. Reach out to 5 additional founders. Gym moves to 6:00 PM. Silence tools early.",
+      "Tomorrow's directive: Clear calendar blocks detected. Consolidate MGE spec writing. Silence notifications until 3:00 PM."
+    ];
+    const randomIndex = Math.floor(Math.random() * directives.length);
+    setDirective(directives[randomIndex]);
+  };
+
   const activeFocusTask = missions.find(m => !m.completed);
 
   return (
     <div className="zen-container" style={{ justifyContent: 'flex-start' }}>
       
-      {/* Universal Command Palette Modal */}
+      {/* Ambient Breathing Glow behind elements */}
+      <div 
+        className="breathing-glow-mesh"
+        style={{ 
+          width: `${glowSize}px`, 
+          height: `${glowSize}px`
+        }}
+      />
+
+      {/* Command Palette */}
       <CommandPalette 
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}
         onAction={handlePaletteAction}
       />
 
-      {/* Top minimalistic navbar - Fades out in Focus Mode */}
+      {/* Top Navbar */}
       <motion.nav 
         className="zen-nav"
         animate={{ 
-          opacity: isExecuting ? 0.15 : 1,
+          opacity: isExecuting ? 0.1 : 1,
           filter: isExecuting ? 'blur(2px)' : 'blur(0px)',
           pointerEvents: isExecuting ? 'none' : 'auto' 
         }}
         transition={{ duration: 0.25, ease: 'easeInOut' }}
       >
         <span className="zen-nav-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>{initialData.profile.avatar}</span>
-          <span style={{ fontWeight: 400, opacity: 0.8 }}>William /</span>
+          <span>🦾</span>
+          <span style={{ fontWeight: 400, opacity: 0.6 }}>William /</span>
           <span style={{ fontWeight: 600 }}>{initialData.profile.name}</span>
         </span>
 
@@ -235,7 +286,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
         </div>
       </motion.nav>
 
-      {/* Main viewport area */}
+      {/* Viewport Frame */}
       <div className="zen-content">
         <AnimatePresence mode="wait">
           <motion.div
@@ -253,7 +304,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                 {/* Header block */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span className="zen-caption">Executive briefing</span>
                     <h2 className="zen-title">Good morning.</h2>
                   </div>
                   {!isExecuting && (
@@ -274,33 +324,72 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                   )}
                 </div>
 
-                {/* All Tasks Completed State */}
-                {missions.every(m => m.completed) ? (
+                {/* Evening Reflection Overlay card */}
+                {showReflectionCard ? (
                   <motion.div 
                     initial={{ scale: 0.98, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     style={{ 
                       display: 'flex', 
                       flexDirection: 'column', 
-                      gap: '20px', 
+                      gap: '24px', 
                       padding: '32px 24px', 
-                      border: '1px dashed var(--border-hairline)', 
+                      border: '1px solid var(--border-hairline)', 
                       borderRadius: '12px', 
                       background: 'var(--bg-surface)',
-                      textAlign: 'center'
+                      boxShadow: 'var(--shadow-subtle)'
                     }}
                   >
-                    <span style={{ fontSize: '24px' }}>🏁</span>
-                    <h3 style={{ fontSize: '1.125rem', fontWeight: 400 }}>Missions complete for today.</h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '360px', margin: '0 auto', lineHeight: 1.5 }}>
-                      William has captured your execution logs. Tomorrow's plan will morph dynamically based on these updates.
-                    </p>
+                    <div style={{ textAlign: 'center' }}>
+                      <span className="zen-caption" style={{ textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>
+                        evening reflection
+                      </span>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 300, marginTop: '8px' }}>
+                        Did today move the mission forward?
+                      </h3>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                      {(['yes', 'partly', 'no'] as const).map(ans => (
+                        <button
+                          key={ans}
+                          type="button"
+                          className={`zen-btn-outline ${reflectionAnswer === ans ? 'selected' : ''}`}
+                          onClick={() => setReflectionAnswer(ans)}
+                          style={{
+                            padding: '8px 24px',
+                            textTransform: 'capitalize',
+                            borderColor: reflectionAnswer === ans ? 'var(--accent-color)' : 'var(--border-hairline)'
+                          }}
+                        >
+                          {ans}
+                        </button>
+                      ))}
+                    </div>
+
+                    {reflectionAnswer && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+                      >
+                        <span className="zen-caption">Why? (One paragraph description)</span>
+                        <textarea
+                          className="zen-textarea"
+                          rows={2}
+                          value={reflectionWhy}
+                          onChange={(e) => setReflectionWhy(e.target.value)}
+                          placeholder="Outreach session booked a call, moved MGE pitch forward."
+                        />
+                      </motion.div>
+                    )}
+
                     <button 
-                      className="zen-btn-outline" 
-                      onClick={() => setMissions(missions.map(m => ({ ...m, completed: false })))}
-                      style={{ alignSelf: 'center', marginTop: '12px' }}
+                      className="zen-btn"
+                      disabled={!reflectionAnswer || !reflectionWhy.trim()}
+                      onClick={handleSubmitReflection}
                     >
-                      Reset Day
+                      Submit Reflection
                     </button>
                   </motion.div>
                 ) : !isExecuting ? (
@@ -308,30 +397,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                   /* Brief Overview Mode */
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                     
-                    {/* Primary Objective */}
+                    {/* Primary Mission */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <span className="zen-caption" style={{ textTransform: 'uppercase', fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.05em' }}>
-                        dominant objective
+                        Mission
                       </span>
                       <div style={{ fontSize: '1.375rem', fontWeight: 300, color: 'var(--text-primary)', lineHeight: 1.4 }}>
                         {dominantObjective}
                       </div>
                     </div>
 
-                    {/* Today's Constraint */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <span className="zen-caption" style={{ textTransform: 'uppercase', fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.05em' }}>
-                        today's constraint
+                    <hr style={{ border: 'none', borderTop: '1px solid var(--border-hairline)' }} />
+
+                    {/* Authoritarian Daily Directive */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px 20px', background: 'var(--focus-glow)', borderRadius: '8px', border: '1px solid var(--border-hairline)' }}>
+                      <span className="zen-caption" style={{ textTransform: 'uppercase', fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        directive
                       </span>
-                      <div style={{ fontSize: '1.0625rem', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                        {constraint}
+                      <div style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        {directive}
                       </div>
                     </div>
 
-                    {/* Missions Checkbox list */}
+                    {/* Today's Tasks */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                       <span className="zen-caption" style={{ textTransform: 'uppercase', fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.05em' }}>
-                        today's mission
+                        Today
                       </span>
                       
                       <div className="zen-checklist">
@@ -350,9 +441,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                       </div>
                     </div>
 
-                    <div style={{ marginTop: '16px' }}>
+                    <hr style={{ border: 'none', borderTop: '1px solid var(--border-hairline)' }} />
+
+                    <div style={{ marginTop: '4px' }}>
                       <button className="zen-btn" style={{ padding: '14px 44px', width: '100%' }} onClick={() => setIsExecuting(true)}>
-                        Begin Focus
+                        Begin
                       </button>
                     </div>
 
@@ -362,7 +455,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                   /* Focus Mode (Vision Pro Style) */
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                     
-                    {/* Glowing focal card */}
+                    {/* Focal card */}
                     <div 
                       style={{ 
                         padding: '48px 24px', 
@@ -376,9 +469,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                         position: 'relative'
                       }}
                     >
-                      {/* Subtle lighting top border */}
-                      <div style={{ position: 'absolute', top: 0, left: '10%', right: '10%', height: '1px', background: 'linear-gradient(90deg, transparent, var(--text-muted), transparent)', opacity: 0.3 }} />
-
                       <span className="zen-caption" style={{ textTransform: 'uppercase', fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.05em', display: 'block', marginBottom: '14px' }}>
                         focal mission
                       </span>
@@ -386,7 +476,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                         "{activeFocusTask?.text}"
                       </h1>
                       <span className="zen-caption" style={{ display: 'block', marginTop: '28px', opacity: 0.7 }}>
-                        Target: {dominantObjective}
+                        Mission: {dominantObjective}
                       </span>
                     </div>
 
@@ -477,33 +567,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                   
-                  {/* Constellation component render */}
-                  <GoalConstellation goals={goals} />
+                  {/* Constellation View */}
+                  <GoalConstellation goals={initialData.context.goals || []} />
 
-                  {/* Settings specs list */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-hairline)', paddingBottom: '12px' }}>
-                      <span className="zen-caption" style={{ textTransform: 'uppercase', fontSize: '0.6875rem' }}>Operator Role</span>
+                    <div style={{ display: 'flex', justifySelf: 'stretch', justifyContent: 'space-between', borderBottom: '1px solid var(--border-hairline)', paddingBottom: '12px' }}>
+                      <span className="zen-caption" style={{ textTransform: 'uppercase', fontSize: '0.6875rem' }}>Operator Identity</span>
                       <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{initialData.profile.role}</span>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-hairline)', paddingBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifySelf: 'stretch', justifyContent: 'space-between', borderBottom: '1px solid var(--border-hairline)', paddingBottom: '12px' }}>
                       <span className="zen-caption" style={{ textTransform: 'uppercase', fontSize: '0.6875rem' }}>Target Build</span>
                       <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{initialData.profile.name}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-hairline)', paddingBottom: '12px' }}>
-                      <span className="zen-caption" style={{ textTransform: 'uppercase', fontSize: '0.6875rem' }}>Connected Channels</span>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        {initialData.integrations.filter(i => i.connected).map(i => (
-                          <span key={i.provider} style={{ fontSize: '10px', background: 'var(--focus-glow)', border: '1px solid var(--border-hairline)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                            {i.provider}
-                          </span>
-                        ))}
-                        {initialData.integrations.filter(i => i.connected).length === 0 && (
-                          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>None connected</span>
-                        )}
-                      </div>
                     </div>
                   </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ConstitutionRule, ContextState, Integration } from '@william/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,50 +15,56 @@ interface OnboardingProps {
 export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [step, setStep] = useState<number>(0);
   
-  // Onboarding parameters
-  const [role, setRole] = useState<string>('Founder');
-  const [projectName, setProjectName] = useState<string>('Atlas');
-  const [goalsInput, setGoalsInput] = useState<string>('Reach $10k MRR\nAcquire first clients');
-  const [connectedServices, setConnectedServices] = useState<{
-    calendar: boolean;
-    notion: boolean;
-    github: boolean;
-  }>({
-    calendar: false,
-    notion: false,
-    github: false
-  });
+  // Ritual greeting state
+  const [ritualPhase, setRitualPhase] = useState<number>(0);
+
+  // User input answers
+  const [becomingInput, setBecomingInput] = useState('');
+  const [buildingInput, setBuildingInput] = useState('');
+  const [missionInput, setMissionInput] = useState('');
+
+  // Auto-progress ritual steps
+  useEffect(() => {
+    if (step !== 0) return;
+
+    const timer1 = setTimeout(() => {
+      setRitualPhase(1); // switch to "Let's build your world."
+    }, 2800);
+
+    const timer2 = setTimeout(() => {
+      setStep(1); // switch to first question
+    }, 5600);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [step]);
+
+  // Simulating calculation step
+  useEffect(() => {
+    if (step === 4) {
+      const timer = setTimeout(() => {
+        setStep(5); // ready screen
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
 
   const handleNextStep = () => {
     setStep(step + 1);
   };
 
   const handlePrevStep = () => {
-    if (step > 0) setStep(step - 1);
-  };
-
-  const handleRoleSelect = (selectedRole: string) => {
-    setRole(selectedRole);
-    setStep(2); // Automatically advance
-  };
-
-  const toggleService = (service: 'calendar' | 'notion' | 'github') => {
-    setConnectedServices(prev => ({
-      ...prev,
-      [service]: !prev[service]
-    }));
+    if (step > 1) setStep(step - 1);
   };
 
   const handleComplete = () => {
-    const goalsArray = goalsInput
-      .split('\n')
-      .map(g => g.trim())
-      .filter(g => g.length > 0);
-
+    // Initial core rules
     const initialRules: ConstitutionRule[] = [
-      { id: 'r1', user_id: 'u1', rule_text: 'Prioritize tasks aligned with dominant project goal', category: 'priority', is_active: true, created_at: new Date().toISOString() },
+      { id: 'r1', user_id: 'u1', rule_text: 'Prioritize tasks aligned with dominant mission targets', category: 'priority', is_active: true, created_at: new Date().toISOString() },
       { id: 'r2', user_id: 'u1', rule_text: 'Execute deep work session in early morning blocks', category: 'work', is_active: true, created_at: new Date().toISOString() },
-      { id: 'r3', user_id: 'u1', rule_text: 'Review daily constraints before starting missions', category: 'priority', is_active: true, created_at: new Date().toISOString() }
+      { id: 'r3', user_id: 'u1', rule_text: 'Strict boundary between active execution and recovery', category: 'recovery', is_active: true, created_at: new Date().toISOString() }
     ];
 
     const contextState: Partial<ContextState> = {
@@ -68,22 +74,22 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       focus_score: 8,
       tasks_today: [],
       meetings_today: [],
-      goals: goalsArray,
+      goals: [missionInput.trim() || 'Acquire first 3 clients'],
       last_updated_at: new Date().toISOString()
     };
 
     const integrations: Integration[] = [
-      { id: 'i1', user_id: 'u1', provider: 'google', connected: connectedServices.calendar, connected_at: connectedServices.calendar ? new Date().toISOString() : '', last_synced_at: connectedServices.calendar ? new Date().toISOString() : null },
-      { id: 'i2', user_id: 'u1', provider: 'notion', connected: connectedServices.notion, connected_at: connectedServices.notion ? new Date().toISOString() : '', last_synced_at: connectedServices.notion ? new Date().toISOString() : null },
-      { id: 'i3', user_id: 'u1', provider: 'github', connected: connectedServices.github, connected_at: connectedServices.github ? new Date().toISOString() : '', last_synced_at: connectedServices.github ? new Date().toISOString() : null }
+      { id: 'i1', user_id: 'u1', provider: 'google', connected: true, connected_at: new Date().toISOString(), last_synced_at: new Date().toISOString() },
+      { id: 'i2', user_id: 'u1', provider: 'notion', connected: true, connected_at: new Date().toISOString(), last_synced_at: new Date().toISOString() },
+      { id: 'i3', user_id: 'u1', provider: 'github', connected: true, connected_at: new Date().toISOString(), last_synced_at: new Date().toISOString() }
     ];
 
     onComplete({
-      username: `${role.toLowerCase()}_operator`,
+      username: becomingInput.trim() || 'Benjamin',
       profile: {
-        name: projectName || 'Atlas Operator',
-        role: role,
-        avatar: role === 'Founder' ? '🚀' : role === 'Creator' ? '🎨' : role === 'Student' ? '🎓' : '💼'
+        name: buildingInput.trim() || 'Atlas',
+        role: becomingInput.trim() || 'Founder',
+        avatar: '🦾'
       },
       rules: initialRules,
       context: contextState,
@@ -94,178 +100,244 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   return (
     <div className="zen-container">
       <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: 8 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -8 }}
-          transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-          className="zen-content"
-        >
-          {/* Hero Welcome Screen */}
-          {step === 0 && (
-            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '40px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <h1 className="zen-title" style={{ fontSize: '3rem', fontWeight: 300, letterSpacing: '-0.06em' }}>
-                  William
-                </h1>
-                <p className="zen-subtitle" style={{ fontSize: '1.125rem', color: 'var(--text-muted)' }}>
-                  Your execution engine.
-                </p>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: 'var(--text-secondary)', fontSize: '1.0625rem', letterSpacing: '-0.01em' }}>
-                <p>One decision.</p>
-                <p>One priority.</p>
-                <p>One step forward.</p>
-              </div>
+        
+        {/* Step 0: The Ritual Greeting Screen */}
+        {step === 0 && (
+          <motion.div 
+            key="ritual"
+            className="ritual-screen"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: 'easeInOut' }}
+          >
+            <AnimatePresence mode="wait">
+              {ritualPhase === 0 ? (
+                <motion.div 
+                  key="hello"
+                  className="ritual-text"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.2, ease: 'easeInOut' }}
+                >
+                  Hello, Benjamin.
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="build"
+                  className="ritual-text"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.2, ease: 'easeInOut' }}
+                >
+                  Let's build your world.
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
 
-              <div style={{ marginTop: '16px' }}>
-                <button className="zen-btn" style={{ padding: '14px 44px' }} onClick={handleNextStep}>
-                  Start
-                </button>
-              </div>
+        {/* Step 1: Who are you becoming? */}
+        {step === 1 && (
+          <motion.div
+            key="step1"
+            className="zen-content"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span className="zen-caption">First Inquiry</span>
+              <h2 className="zen-title">Who are you becoming?</h2>
             </div>
-          )}
 
-          {/* Step 1: Identity */}
-          {step === 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span className="zen-caption">Step 1 of 4</span>
-                <h2 className="zen-title">Who are you?</h2>
-              </div>
-
-              <div className="zen-choice-list">
-                {['Founder', 'Student', 'Creator', 'Executive'].map(opt => (
-                  <button 
-                    key={opt}
-                    className={`zen-choice-item ${role === opt ? 'selected' : ''}`}
-                    onClick={() => handleRoleSelect(opt)}
-                  >
-                    <span>{opt}</span>
-                    <span>→</span>
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ marginTop: '8px' }}>
-                <button className="zen-btn-outline" onClick={handlePrevStep}>
-                  Back
-                </button>
-              </div>
+            <div style={{ marginTop: '16px' }}>
+              <input
+                type="text"
+                className="zen-input"
+                value={becomingInput}
+                onChange={(e) => setBecomingInput(e.target.value)}
+                placeholder="e.g. Founder"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && becomingInput.trim()) {
+                    handleNextStep();
+                  }
+                }}
+              />
             </div>
-          )}
 
-          {/* Step 2: What are you building? */}
-          {step === 2 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span className="zen-caption">Step 2 of 4</span>
-                <h2 className="zen-title">What are you building?</h2>
-              </div>
-
-              <div style={{ marginTop: '8px' }}>
-                <input 
-                  type="text" 
-                  className="zen-input"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="e.g. Atlas"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && projectName.trim()) {
-                      handleNextStep();
-                    }
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                <button className="zen-btn-outline" onClick={handlePrevStep}>
-                  Back
-                </button>
-                <button className="zen-btn" onClick={handleNextStep} disabled={!projectName.trim()}>
-                  Continue
-                </button>
-              </div>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button 
+                className="zen-btn" 
+                onClick={handleNextStep} 
+                disabled={!becomingInput.trim()}
+                style={{ width: '100%' }}
+              >
+                Continue
+              </button>
             </div>
-          )}
+          </motion.div>
+        )}
 
-          {/* Step 3: Goals */}
-          {step === 3 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span className="zen-caption">Step 3 of 4</span>
-                <h2 className="zen-title">What are your goals?</h2>
-                <p className="zen-caption">Enter one goal per line.</p>
-              </div>
-
-              <div style={{ marginTop: '8px' }}>
-                <textarea 
-                  className="zen-textarea"
-                  rows={4}
-                  value={goalsInput}
-                  onChange={(e) => setGoalsInput(e.target.value)}
-                  placeholder="e.g. Reach $10k MRR&#10;Acquire first clients"
-                  autoFocus
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                <button className="zen-btn-outline" onClick={handlePrevStep}>
-                  Back
-                </button>
-                <button className="zen-btn" onClick={handleNextStep} disabled={!goalsInput.trim()}>
-                  Continue
-                </button>
-              </div>
+        {/* Step 2: What are you building? */}
+        {step === 2 && (
+          <motion.div
+            key="step2"
+            className="zen-content"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span className="zen-caption">Second Inquiry</span>
+              <h2 className="zen-title">What are you building?</h2>
             </div>
-          )}
 
-          {/* Step 4: Connect */}
-          {step === 4 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span className="zen-caption">Step 4 of 4</span>
-                <h2 className="zen-title">Connect Services</h2>
-                <p className="zen-caption">Synergize William with your tools to pull context.</p>
-              </div>
-
-              <div className="zen-choice-list" style={{ marginTop: '8px' }}>
-                {[
-                  { key: 'calendar', name: 'Calendar', desc: 'Sync daily schedules' },
-                  { key: 'notion', name: 'Notion', desc: 'Pull product specs' },
-                  { key: 'github', name: 'GitHub', desc: 'Sync code activities' }
-                ].map(svc => (
-                  <button 
-                    key={svc.key}
-                    className={`zen-choice-item ${connectedServices[svc.key as 'calendar' | 'notion' | 'github'] ? 'selected' : ''}`}
-                    onClick={() => toggleService(svc.key as any)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <span style={{ fontSize: '1rem', fontWeight: 500 }}>{svc.name}</span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{svc.desc}</span>
-                    </div>
-                    <span style={{ fontSize: '0.875rem' }}>
-                      {connectedServices[svc.key as 'calendar' | 'notion' | 'github'] ? 'Connected' : 'Connect'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                <button className="zen-btn-outline" onClick={handlePrevStep}>
-                  Back
-                </button>
-                <button className="zen-btn" onClick={handleComplete} style={{ flex: 1 }}>
-                  Done
-                </button>
-              </div>
+            <div style={{ marginTop: '16px' }}>
+              <input
+                type="text"
+                className="zen-input"
+                value={buildingInput}
+                onChange={(e) => setBuildingInput(e.target.value)}
+                placeholder="e.g. Atlas"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && buildingInput.trim()) {
+                    handleNextStep();
+                  }
+                }}
+              />
             </div>
-          )}
-        </motion.div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button className="zen-btn-outline" onClick={handlePrevStep}>
+                Back
+              </button>
+              <button 
+                className="zen-btn" 
+                onClick={handleNextStep} 
+                disabled={!buildingInput.trim()}
+                style={{ flex: 1 }}
+              >
+                Continue
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 3: What matters most over the next 90 days? */}
+        {step === 3 && (
+          <motion.div
+            key="step3"
+            className="zen-content"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span className="zen-caption">Dominant objective</span>
+              <h2 className="zen-title">What matters most over the next 90 days?</h2>
+            </div>
+
+            <div style={{ marginTop: '16px' }}>
+              <textarea
+                className="zen-textarea"
+                rows={3}
+                value={missionInput}
+                onChange={(e) => setMissionInput(e.target.value)}
+                placeholder="e.g. Acquire first 3 Atlas clients."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && missionInput.trim()) {
+                    e.preventDefault();
+                    handleNextStep();
+                  }
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button className="zen-btn-outline" onClick={handlePrevStep}>
+                Back
+              </button>
+              <button 
+                className="zen-btn" 
+                onClick={handleNextStep} 
+                disabled={!missionInput.trim()}
+                style={{ flex: 1 }}
+              >
+                Configure Workspace
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 4: William is thinking / processing */}
+        {step === 4 && (
+          <motion.div
+            key="step4"
+            className="zen-content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ textAlign: 'center', gap: '24px' }}
+          >
+            <div style={{ height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {/* Spinner animation */}
+              <motion.div 
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  border: '1px solid var(--border-hairline)',
+                  borderTopColor: 'var(--text-primary)',
+                  borderRadius: '50%'
+                }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              />
+            </div>
+            <p style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>
+              William is mapping the execution context...
+            </p>
+          </motion.div>
+        )}
+
+        {/* Step 5: I've understood. Let's begin. */}
+        {step === 5 && (
+          <motion.div
+            key="step5"
+            className="zen-content"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3 }}
+            style={{ textAlign: 'center', gap: '32px' }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h2 className="zen-title">I've understood.</h2>
+              <p className="zen-subtitle" style={{ color: 'var(--text-muted)' }}>
+                Your dominant mission is set.
+              </p>
+            </div>
+
+            <div style={{ marginTop: '16px' }}>
+              <button 
+                className="zen-btn" 
+                onClick={handleComplete}
+                style={{ padding: '14px 44px', fontSize: '1rem' }}
+              >
+                Let's begin.
+              </button>
+            </div>
+          </motion.div>
+        )}
+
       </AnimatePresence>
     </div>
   );
