@@ -14,6 +14,7 @@ import {
   getChats,
   saveChat
 } from './memoryAdapter';
+import { BrainGateway } from './services/brainGateway';
 
 dotenv.config();
 
@@ -44,21 +45,23 @@ The user says: "${userText}"
 
 Reply in 2-3 sentences. Keep your tone quiet, thoughtful, warm, and companionable. Avoid sounding corporate or robotic. Never use checklists or templates. Address them personally.`;
 
-  if (apiKey) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const hasKeys = !!(apiKey || process.env.GEMINI_API_KEY || process.env.CLAUDE_API_KEY || process.env.OPENAI_API_KEY);
+
+  if (hasKeys) {
+    if (apiKey && !process.env.GEMINI_API_KEY) {
+      process.env.GEMINI_API_KEY = apiKey;
+    }
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: systemPrompt }] }],
-          generationConfig: { maxOutputTokens: 250 }
-        })
+      const response = await BrainGateway.execute({
+        systemPrompt,
+        userPrompt: userText,
+        maxTokens: 250
       });
-      const json: any = await response.json();
-      return json.candidates?.[0]?.content?.parts?.[0]?.text || "I'm listening.";
+      if (response && response.providerUsed !== 'fallback') {
+        return response.text;
+      }
     } catch (e) {
-      console.error('Error calling Gemini in Reasoner:', e);
+      console.error('Error calling BrainGateway in Reasoner:', e);
     }
   }
 
@@ -108,11 +111,16 @@ async function runWilliamReflection(
   apiKey?: string
 ): Promise<ReflectionResult> {
   
-  if (apiKey) {
+  const hasKeys = !!(apiKey || process.env.GEMINI_API_KEY || process.env.CLAUDE_API_KEY || process.env.OPENAI_API_KEY);
+
+  if (hasKeys) {
+    if (apiKey && !process.env.GEMINI_API_KEY) {
+      process.env.GEMINI_API_KEY = apiKey;
+    }
     const chatStream = chats.map(c => `- ${c.sender === 'user' ? 'User' : 'William'}: "${c.text}"`).join('\n');
     const timelineStream = chronicles.map(c => `- [${c.time || 'Entry'}] ${c.text}`).join('\n');
 
-    const prompt = `You are William, a quiet, calm companion for self-becoming.
+    const systemPrompt = `You are William, a quiet, calm companion for self-becoming.
 Today, you observed the following timeline entries and chat interactions for ${portrait.name || 'Friend'}:
 
 [Chats today]:
@@ -126,9 +134,9 @@ ${JSON.stringify(portrait.activeBeliefs || [])}
 
 Now, write your nightly self-reflection about ${portrait.name || 'Friend'}. 
 What did you learn about them today? What surprised you? Did any beliefs about their identity, principles, or dreams change? 
-Evolve their portrait biography from static data lists to deep, synthesized understandings of their cognition.
+Evolve their portrait biography from static data lists to deep, synthesized understandings of their cognition.`;
 
-Follow this EXACT format for your response:
+    const userPrompt = `Follow this EXACT format for your response:
 REFLECTION: [3-4 sentence paragraph of your understanding of their patterns, strengths, or barriers today.]
 IDENTITY: [1 sentence synthesis of their long-term path]
 DREAMS: [1 sentence update of their primary dreams/builds]
@@ -140,58 +148,56 @@ ATTENTION_SPAN: [1 sentence attention capacity and focus fatigue limits]
 DECISION_HEURISTICS: [1 sentence description of how they make key choices]
 BELIEFS_EVOLUTION: [Updated list of active beliefs with their strengths and status, as a JSON array of objects like {"belief": "...", "strength": 0.8, "lastTested": "Today", "evolution": "..."}]`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 600 }
-        })
+      const response = await BrainGateway.execute({
+        systemPrompt,
+        userPrompt,
+        maxTokens: 650
       });
-      const json: any = await response.json();
-      const text: string = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      
-      // Parse structured text lines
-      const reflection = text.match(/REFLECTION:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || '';
-      const identity = text.match(/IDENTITY:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.identity;
-      const dreams = text.match(/DREAMS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.dreams;
-      const strengths = text.match(/STRENGTHS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.strengths;
-      const blindSpots = text.match(/BLIND_SPOTS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.blind_spots;
-      const style = text.match(/COGNITIVE_STYLE:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.problemSolvingStyle;
-      const bias = text.match(/TEMPORAL_BIAS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.temporalBias;
-      const span = text.match(/ATTENTION_SPAN:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.attentionSpan;
-      const heur = text.match(/DECISION_HEURISTICS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.decisionHeuristics;
-      
-      let parsedBeliefs = portrait.activeBeliefs || [];
-      try {
-        const beliefsStr = text.match(/BELIEFS_EVOLUTION:\s*(.*?)$/s)?.[1]?.trim() || '';
-        if (beliefsStr.startsWith('[') && beliefsStr.endsWith(']')) {
-          parsedBeliefs = JSON.parse(beliefsStr);
-        }
-      } catch (e) {
-        console.warn('Failed to parse beliefs JSON evolution from reasoner, using previous.');
-      }
 
-      if (reflection) {
-        return {
-          reflection,
-          identity,
-          dreams,
-          strengths,
-          blindSpots,
-          cognitiveProfile: {
-            problemSolvingStyle: style,
-            temporalBias: bias,
-            attentionSpan: span,
-            decisionHeuristics: heur
-          },
-          activeBeliefs: parsedBeliefs
-        };
+      if (response && response.providerUsed !== 'fallback') {
+        const text = response.text;
+        
+        // Parse structured text lines
+        const reflection = text.match(/REFLECTION:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || '';
+        const identity = text.match(/IDENTITY:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.identity;
+        const dreams = text.match(/DREAMS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.dreams;
+        const strengths = text.match(/STRENGTHS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.strengths;
+        const blindSpots = text.match(/BLIND_SPOTS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.blind_spots;
+        const style = text.match(/COGNITIVE_STYLE:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.problemSolvingStyle;
+        const bias = text.match(/TEMPORAL_BIAS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.temporalBias;
+        const span = text.match(/ATTENTION_SPAN:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.attentionSpan;
+        const heur = text.match(/DECISION_HEURISTICS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.decisionHeuristics;
+        
+        let parsedBeliefs = portrait.activeBeliefs || [];
+        try {
+          const beliefsStr = text.match(/BELIEFS_EVOLUTION:\s*(.*?)$/s)?.[1]?.trim() || '';
+          if (beliefsStr.startsWith('[') && beliefsStr.endsWith(']')) {
+            parsedBeliefs = JSON.parse(beliefsStr);
+          }
+        } catch (e) {
+          console.warn('Failed to parse beliefs JSON evolution from reasoner, using previous.');
+        }
+
+        if (reflection) {
+          return {
+            reflection,
+            identity,
+            dreams,
+            strengths,
+            blindSpots,
+            cognitiveProfile: {
+              problemSolvingStyle: style,
+              temporalBias: bias,
+              attentionSpan: span,
+              decisionHeuristics: heur
+            },
+            activeBeliefs: parsedBeliefs
+          };
+        }
       }
     } catch (e) {
-      console.error('Error calling Gemini in Reflection Engine:', e);
+      console.error('Error calling BrainGateway in Reflection Engine:', e);
     }
   }
 

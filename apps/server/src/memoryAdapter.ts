@@ -78,12 +78,12 @@ export async function savePortrait(p: Portrait): Promise<void> {
   } else {
     const db = await getDatabase();
     await db.run(`
-      INSERT INTO portrait (id, name, identity, values, principles, strengths, blind_spots, dreams, relationships, decision_patterns, growth, cognitive_profile, active_beliefs)
+      INSERT INTO portrait (id, name, identity, "values", principles, strengths, blind_spots, dreams, relationships, decision_patterns, growth, cognitive_profile, active_beliefs)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
         identity = excluded.identity,
-        values = excluded.values,
+        "values" = excluded."values",
         principles = excluded.principles,
         strengths = excluded.strengths,
         blind_spots = excluded.blind_spots,

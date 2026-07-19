@@ -20,7 +20,7 @@ export async function getDatabase(): Promise<Database> {
       id TEXT PRIMARY KEY,
       name TEXT,
       identity TEXT,
-      values TEXT,
+      "values" TEXT,
       principles TEXT,
       strengths TEXT,
       blind_spots TEXT,
