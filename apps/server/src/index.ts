@@ -557,6 +557,10 @@ app.get('/api/presence', async (req: Request, res: Response) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`William Reasoner API running on port ${PORT}`);
-});
+export default app;
+
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`William Reasoner API running on port ${PORT}`);
+  });
+}
