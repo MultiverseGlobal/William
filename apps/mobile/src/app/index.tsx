@@ -23,7 +23,7 @@ interface ChatMessage {
 }
 
 // API Url mapping: Android emulator maps host localhost to 10.0.2.2
-const API_URL = Platform.select({
+const API_URL = process.env.EXPO_PUBLIC_API_URL || Platform.select({
   android: 'http://10.0.2.2:3005',
   ios: 'http://10.0.2.2:3005', // Fallback, can be updated to host IP
   default: 'http://localhost:3005',

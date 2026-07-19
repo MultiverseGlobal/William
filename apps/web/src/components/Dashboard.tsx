@@ -42,7 +42,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   const [journeys, setJourneys] = useState<Journey[]>(initialData.journeys);
   const [library, setLibrary] = useState<LibraryItem[]>(initialData.library);
 
-  const API_URL = 'http://localhost:3005';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3005';
 
   const fetchJson = async (endpoint: string, options?: RequestInit) => {
     try {
