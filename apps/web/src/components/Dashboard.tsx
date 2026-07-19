@@ -664,8 +664,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
           
           {/* Big Breathing Orb Visualizer */}
           <div className="breathing-assistant-orb-wrapper">
+            <div className="breathing-assistant-orb-ripple" />
+            <div className="breathing-assistant-orb-ripple" />
+            <div className="breathing-assistant-orb-ripple" />
             <div className="breathing-assistant-orb-outer" />
             <div className="breathing-assistant-orb-pulse" />
+            <div className="breathing-assistant-orb-glass-shield" />
             <div className="breathing-assistant-orb" />
           </div>
 

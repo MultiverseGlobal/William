@@ -100,48 +100,46 @@ export default function HomeScreen() {
     return () => breathe.stop();
   }, []);
 
-  // Ripple visualizer loops for Speak mode
+  // Ripple visualizer loops for Speak mode & Today screen
   useEffect(() => {
     let ripple1: Animated.CompositeAnimation | null = null;
     let ripple2: Animated.CompositeAnimation | null = null;
 
-    if (captureType === 'speak') {
+    if (currentTab === 'today' || captureType === 'speak') {
       rippleScale1.setValue(1);
-      rippleOpacity1.setValue(0.5);
+      rippleOpacity1.setValue(0.4);
       rippleScale2.setValue(1);
-      rippleOpacity2.setValue(0.5);
+      rippleOpacity2.setValue(0.4);
 
       ripple1 = Animated.loop(
-        Animated.sequence([
-          Animated.parallel([
-            Animated.timing(rippleScale1, {
-              toValue: 2.2,
-              duration: 2000,
-              easing: Easing.out(Easing.ease),
-              useNativeDriver: true,
-            }),
-            Animated.timing(rippleOpacity1, {
-              toValue: 0,
-              duration: 2000,
-              useNativeDriver: true,
-            }),
-          ]),
+        Animated.parallel([
+          Animated.timing(rippleScale1, {
+            toValue: 2.2,
+            duration: 3500,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(rippleOpacity1, {
+            toValue: 0,
+            duration: 3500,
+            useNativeDriver: true,
+          }),
         ])
       );
 
       ripple2 = Animated.loop(
         Animated.sequence([
-          Animated.delay(1000),
+          Animated.delay(1750),
           Animated.parallel([
             Animated.timing(rippleScale2, {
               toValue: 2.2,
-              duration: 2000,
+              duration: 3500,
               easing: Easing.out(Easing.ease),
               useNativeDriver: true,
             }),
             Animated.timing(rippleOpacity2, {
               toValue: 0,
-              duration: 2000,
+              duration: 3500,
               useNativeDriver: true,
             }),
           ]),
@@ -159,7 +157,7 @@ export default function HomeScreen() {
       ripple1?.stop();
       ripple2?.stop();
     };
-  }, [captureType]);
+  }, [currentTab, captureType]);
 
   // Fetch API Helper
   const fetchJson = async (endpoint: string, options?: RequestInit) => {
@@ -677,6 +675,29 @@ export default function HomeScreen() {
 
             {/* Central Animated Breathing Orb */}
             <View style={styles.orbWrapper}>
+              {/* Ripple circles */}
+              <Animated.View 
+                style={[
+                  styles.orbRippleRing,
+                  {
+                    transform: [{ scale: rippleScale1 }],
+                    opacity: rippleOpacity1
+                  }
+                ]}
+              />
+              <Animated.View 
+                style={[
+                  styles.orbRippleRing,
+                  {
+                    transform: [{ scale: rippleScale2 }],
+                    opacity: rippleOpacity2
+                  }
+                ]}
+              />
+
+              {/* Glassmorphic frosted boundary */}
+              <View style={styles.orbGlassShield} />
+
               {/* Outer glow aura */}
               <Animated.View 
                 style={[
@@ -1299,46 +1320,70 @@ const styles = StyleSheet.create({
   },
   // Glowing breathing orb styles
   orbWrapper: {
-    width: 200,
-    height: 200,
+    width: 220,
+    height: 220,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative'
   },
   orbOuterGlow: {
     position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     backgroundColor: '#8b5cf6', // Indigo glow aura
-    opacity: 0.4,
+    opacity: 0.35,
     shadowColor: '#8b5cf6',
-    shadowOpacity: 0.8,
-    shadowRadius: 50,
-    elevation: 10
+    shadowOpacity: 0.85,
+    shadowRadius: 40,
+    elevation: 8
+  },
+  orbGlassShield: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4
+  },
+  orbRippleRing: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 1.5,
+    borderColor: '#06b6d4',
   },
   orbSphere: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#06b6d4', // Cyan main sphere
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#06b6d4',
     shadowOpacity: 0.9,
-    shadowRadius: 30,
-    elevation: 8
+    shadowRadius: 25,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   orbCore: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#ffffff',
-    opacity: 0.9,
+    opacity: 0.95,
     shadowColor: '#ffffff',
     shadowOpacity: 1,
-    shadowRadius: 10,
-    elevation: 5
+    shadowRadius: 8,
+    elevation: 4
   },
   pillButton: {
     paddingHorizontal: 16,

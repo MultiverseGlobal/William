@@ -555,45 +555,135 @@ body {
 /* Big breathing orb visualizer */
 .breathing-assistant-orb-wrapper {
   position: relative;
-  width: 280px;
-  height: 280px;
+  width: 320px;
+  height: 320px;
   display: flex;
   justify-content: center;
   align-items: center;
   margin-bottom: 56px;
+  cursor: pointer;
+  perspective: 1000px;
 }
 
 .breathing-assistant-orb {
-  width: 120px;
-  height: 120px;
-  border-radius: 60px;
-  background: radial-gradient(circle, #06b6d4 0%, #8b5cf6 70%, rgba(139, 92, 246, 0) 100%);
-  filter: blur(8px);
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #22d3ee 0%, #a78bfa 50%, #4c1d95 100%);
   position: relative;
+  z-index: 3;
+  box-shadow: 0 0 50px 10px rgba(34, 211, 238, 0.4),
+              0 0 90px 30px rgba(167, 139, 250, 0.3),
+              inset -10px -10px 30px rgba(0, 0, 0, 0.5),
+              inset 10px 10px 30px rgba(255, 255, 255, 0.3);
+  animation: orb-breath 6s ease-in-out infinite,
+             orb-liquid 9s ease-in-out infinite;
+  transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.8s ease;
+}
+
+.breathing-assistant-orb:hover {
+  transform: scale(1.12) rotate(15deg);
+  box-shadow: 0 0 70px 20px rgba(34, 211, 238, 0.6),
+              0 0 120px 50px rgba(167, 139, 250, 0.5),
+              inset -5px -5px 20px rgba(0, 0, 0, 0.4),
+              inset 5px 5px 20px rgba(255, 255, 255, 0.4);
+}
+
+/* Frosted glass ring wrapping the orb */
+.breathing-assistant-orb-glass-shield {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.01);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 2;
-  box-shadow: 0 0 60px 20px rgba(6, 182, 212, 0.4),
-              0 0 100px 40px rgba(139, 92, 246, 0.3);
-  animation: orb-breath 8s ease-in-out infinite;
+  box-shadow: inset 0 8px 32px 0 rgba(31, 38, 135, 0.1),
+              0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  animation: glass-float 12s ease-in-out infinite;
 }
 
 .breathing-assistant-orb-outer {
   position: absolute;
-  width: 220px;
-  height: 220px;
-  border-radius: 110px;
-  border: 1px solid var(--border-hairline);
-  opacity: 0.15;
-  animation: orb-rotate 25s linear infinite;
+  width: 270px;
+  height: 270px;
+  border-radius: 50%;
+  border: 1px solid rgba(6, 182, 212, 0.15);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.05);
+  opacity: 0.4;
+  animation: orb-rotate 28s linear infinite;
+  pointer-events: none;
 }
 
 .breathing-assistant-orb-pulse {
   position: absolute;
-  width: 160px;
-  height: 160px;
-  border-radius: 80px;
-  border: 1px dashed var(--text-muted);
-  opacity: 0.1;
-  animation: orb-rotate-reverse 35s linear infinite;
+  width: 230px;
+  height: 230px;
+  border-radius: 50%;
+  border: 1px dashed rgba(139, 92, 246, 0.2);
+  opacity: 0.3;
+  animation: orb-rotate-reverse 38s linear infinite;
+  pointer-events: none;
+}
+
+/* Sound ripple rings when active/hovered */
+.breathing-assistant-orb-ripple {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--accent-color);
+  opacity: 0;
+  width: 140px;
+  height: 140px;
+  z-index: 1;
+  pointer-events: none;
+  animation: orb-ripple-expand 4s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+}
+
+.breathing-assistant-orb-ripple:nth-child(2) {
+  animation-delay: 1.3s;
+}
+
+.breathing-assistant-orb-ripple:nth-child(3) {
+  animation-delay: 2.6s;
+}
+
+@keyframes orb-liquid {
+  0% {
+    border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%;
+  }
+  33% {
+    border-radius: 58% 42% 52% 48% / 46% 54% 44% 56%;
+  }
+  66% {
+    border-radius: 46% 54% 42% 58% / 53% 47% 57% 43%;
+  }
+  100% {
+    border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%;
+  }
+}
+
+@keyframes glass-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.02);
+  }
+}
+
+@keyframes orb-ripple-expand {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+    filter: blur(4px);
+  }
 }
 
 @keyframes orb-breath {
@@ -602,11 +692,12 @@ body {
     opacity: 0.8;
   }
   50% {
-    transform: scale(1.15);
+    transform: scale(1.1);
     opacity: 0.95;
-    filter: blur(12px);
-    box-shadow: 0 0 80px 30px rgba(6, 182, 212, 0.5),
-                0 0 130px 60px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 60px 15px rgba(34, 211, 238, 0.5),
+                0 0 110px 40px rgba(167, 139, 250, 0.4),
+                inset -8px -8px 25px rgba(0, 0, 0, 0.5),
+                inset 8px 8px 25px rgba(255, 255, 255, 0.3);
   }
 }
 

@@ -1,16 +1,18 @@
 {
   "expo": {
     "name": "mobile",
-    "slug": "mobile",
+    "slug": "william",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.pseudonyms.william"
     },
     "android": {
+      "package": "com.pseudonyms.william",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -37,6 +39,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "95e3e445-3e7e-41e8-ac39-08712808f01d"
+      }
+    },
+    "owner": "pseudonyms"
   }
 }
