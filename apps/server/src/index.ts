@@ -45,7 +45,7 @@ The user says: "${userText}"
 
 Reply in 2-3 sentences. Keep your tone quiet, thoughtful, warm, and companionable. Avoid sounding corporate or robotic. Never use checklists or templates. Address them personally.`;
 
-  const hasKeys = !!(apiKey || process.env.GEMINI_API_KEY || process.env.CLAUDE_API_KEY || process.env.OPENAI_API_KEY);
+  const hasKeys = !!(apiKey || process.env.GEMINI_API_KEY || process.env.CLAUDE_API_KEY || process.env.OPENAI_API_KEY || process.env.OMNIROUTE_URL);
 
   if (hasKeys) {
     if (apiKey && !process.env.GEMINI_API_KEY) {
@@ -55,7 +55,8 @@ Reply in 2-3 sentences. Keep your tone quiet, thoughtful, warm, and companionabl
       const response = await BrainGateway.execute({
         systemPrompt,
         userPrompt: userText,
-        maxTokens: 250
+        maxTokens: 250,
+        model: process.env.OMNIROUTE_REASONER_MODEL
       });
       if (response && response.providerUsed !== 'fallback') {
         return response.text;
@@ -111,7 +112,7 @@ async function runWilliamReflection(
   apiKey?: string
 ): Promise<ReflectionResult> {
   
-  const hasKeys = !!(apiKey || process.env.GEMINI_API_KEY || process.env.CLAUDE_API_KEY || process.env.OPENAI_API_KEY);
+  const hasKeys = !!(apiKey || process.env.GEMINI_API_KEY || process.env.CLAUDE_API_KEY || process.env.OPENAI_API_KEY || process.env.OMNIROUTE_URL);
 
   if (hasKeys) {
     if (apiKey && !process.env.GEMINI_API_KEY) {
@@ -152,7 +153,8 @@ BELIEFS_EVOLUTION: [Updated list of active beliefs with their strengths and stat
       const response = await BrainGateway.execute({
         systemPrompt,
         userPrompt,
-        maxTokens: 650
+        maxTokens: 650,
+        model: process.env.OMNIROUTE_REFLECTION_MODEL
       });
 
       if (response && response.providerUsed !== 'fallback') {

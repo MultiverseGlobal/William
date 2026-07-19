@@ -3,9 +3,10 @@ import { Portrait } from '@william/types';
 export interface BrainRequest {
   systemPrompt: string;
   userPrompt: string;
-  providerPriority?: ('google' | 'anthropic' | 'openai')[];
+  providerPriority?: ('omniroute' | 'google' | 'anthropic' | 'openai')[];
   temperature?: number;
   maxTokens?: number;
+  model?: string;
 }
 
 export interface BrainResponse {
@@ -17,9 +18,18 @@ export interface BrainResponse {
 export class BrainGateway {
   static async execute(req: BrainRequest): Promise<BrainResponse> {
     const start = Date.now();
-    const priority = req.providerPriority || ['google', 'anthropic', 'openai'];
+    const priority = req.providerPriority || ['omniroute', 'google', 'anthropic', 'openai'];
 
     for (const provider of priority) {
+      if (provider === 'omniroute' && process.env.OMNIROUTE_URL) {
+        try {
+          const text = await this.callOmniRoute(req);
+          return { text, providerUsed: 'omniroute', latencyMs: Date.now() - start };
+        } catch (e) {
+          console.warn('BrainGateway: OmniRoute provider failed, falling back...', e);
+        }
+      }
+
       if (provider === 'google' && process.env.GEMINI_API_KEY) {
         try {
           const text = await this.callGemini(req);
@@ -125,6 +135,37 @@ export class BrainGateway {
     });
 
     if (!res.ok) throw new Error(`OpenAI API returned status ${res.status}`);
+    const json: any = await res.json();
+    return json.choices?.[0]?.message?.content || '';
+  }
+
+  private static async callOmniRoute(req: BrainRequest): Promise<string> {
+    const url = `${process.env.OMNIROUTE_URL}/chat/completions`;
+    const key = process.env.OMNIROUTE_API_KEY;
+    const model = req.model || process.env.OMNIROUTE_REASONER_MODEL || 'gpt-4o-mini';
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    if (key) {
+      headers['Authorization'] = `Bearer ${key}`;
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        max_tokens: req.maxTokens || 600,
+        temperature: req.temperature ?? 0.7,
+        messages: [
+          { role: 'system', content: req.systemPrompt },
+          { role: 'user', content: req.userPrompt }
+        ]
+      })
+    });
+
+    if (!res.ok) throw new Error(`OmniRoute API returned status ${res.status}`);
     const json: any = await res.json();
     return json.choices?.[0]?.message?.content || '';
   }
