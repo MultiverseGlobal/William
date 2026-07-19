@@ -95,7 +95,21 @@ export default function HomeScreen() {
       blind_spots: 'Isolation',
       relationships: 'Companion circle',
       decision_patterns: [],
-      growth: ['Companion initialized on mobile walk.']
+      growth: ['Companion initialized on mobile walk.'],
+      cognitiveProfile: {
+        problemSolvingStyle: 'System-builder (prefers architectural foundations over spontaneous routines)',
+        temporalBias: 'Underestimates 3-month compound growth; overestimates 1-week execution limits',
+        attentionSpan: 'High-intensity deep work blocks, susceptible to rapid burnout if rest is neglected',
+        decisionHeuristics: 'Prefers writing structured code to resolve ambiguity rather than discussing specs'
+      },
+      activeBeliefs: [
+        {
+          belief: 'I must build complete foundations before exposing ideas.',
+          strength: 0.8,
+          lastTested: 'Today',
+          evolution: 'Initial baseline seeded during onboarding.'
+        }
+      ]
     };
 
     setIsLoading(true);
@@ -462,7 +476,7 @@ export default function HomeScreen() {
         )}
 
         {/* Tab 3: Portrait Biography */}
-        {currentTab === 'portrait' && (
+        {currentTab === 'portrait' && portrait && (
           <ScrollView style={styles.tabContent} contentContainerStyle={styles.scrollPadding}>
             <Text style={styles.tabTitle}>Your Biography</Text>
             
@@ -489,6 +503,45 @@ export default function HomeScreen() {
             <View style={styles.bioCard}>
               <Text style={styles.bioTitle}>Blind Spots</Text>
               <Text style={styles.bioBody}>{portrait.blind_spots}</Text>
+            </View>
+
+            {/* Cognitive Profile Card */}
+            <View style={[styles.bioCard, { borderTopWidth: 1, borderTopColor: '#27272a', marginTop: 12, paddingTop: 16 }]}>
+              <Text style={[styles.bioTitle, { color: '#a1a1aa' }]}>Cognitive Style</Text>
+              <Text style={[styles.bioBody, { fontSize: 13, marginBottom: 8 }]}>
+                <Text style={{ fontWeight: 'bold', color: '#e4e4e7' }}>Style: </Text>
+                {portrait.cognitiveProfile?.problemSolvingStyle}
+              </Text>
+              <Text style={[styles.bioBody, { fontSize: 13, marginBottom: 8 }]}>
+                <Text style={{ fontWeight: 'bold', color: '#e4e4e7' }}>Temporal Bias: </Text>
+                {portrait.cognitiveProfile?.temporalBias}
+              </Text>
+              <Text style={[styles.bioBody, { fontSize: 13, marginBottom: 8 }]}>
+                <Text style={{ fontWeight: 'bold', color: '#e4e4e7' }}>Attention: </Text>
+                {portrait.cognitiveProfile?.attentionSpan}
+              </Text>
+              <Text style={[styles.bioBody, { fontSize: 13 }]}>
+                <Text style={{ fontWeight: 'bold', color: '#e4e4e7' }}>Heuristics: </Text>
+                {portrait.cognitiveProfile?.decisionHeuristics}
+              </Text>
+            </View>
+
+            {/* Active Beliefs Card */}
+            <View style={styles.bioCard}>
+              <Text style={[styles.bioTitle, { color: '#a1a1aa' }]}>Active Beliefs</Text>
+              {(portrait.activeBeliefs || []).map((item, idx) => (
+                <View key={idx} style={{ borderLeftWidth: 2, borderLeftColor: '#52525b', paddingLeft: 10, marginBottom: 12 }}>
+                  <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '500' }}>
+                    {item.belief} ({Math.round(item.strength * 100)}%)
+                  </Text>
+                  <Text style={{ color: '#a1a1aa', fontSize: 11, marginTop: 2 }}>
+                    Evolution: {item.evolution}
+                  </Text>
+                </View>
+              ))}
+              {(!portrait.activeBeliefs || portrait.activeBeliefs.length === 0) && (
+                <Text style={styles.bioBody}>No active beliefs tracked yet.</Text>
+              )}
             </View>
           </ScrollView>
         )}

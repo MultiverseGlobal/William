@@ -33,6 +33,13 @@ Their strengths: "${portrait.strengths}".
 Their blind spots: "${portrait.blind_spots}".
 Guiding principles: "${portrait.principles}".
 
+[Cognitive Profile of user]:
+- Problem Solving Style: "${portrait.cognitiveProfile?.problemSolvingStyle || 'System-builder'}"
+- Temporal Bias: "${portrait.cognitiveProfile?.temporalBias || 'Overestimates week; underestimates quarter'}"
+- Attention Span & Focus Limits: "${portrait.cognitiveProfile?.attentionSpan || 'High intensity focus'}"
+- Decision Heuristics: "${portrait.cognitiveProfile?.decisionHeuristics || 'Code actualization'}"
+- Active Beliefs: "${JSON.stringify(portrait.activeBeliefs || [])}"
+
 The user says: "${userText}"
 
 Reply in 2-3 sentences. Keep your tone quiet, thoughtful, warm, and companionable. Avoid sounding corporate or robotic. Never use checklists or templates. Address them personally.`;
@@ -73,13 +80,33 @@ Reply in 2-3 sentences. Keep your tone quiet, thoughtful, warm, and companionabl
   return `I have recorded this, ${portrait.name}. Over time, these daily captures will reveal patterns we cannot see in isolation. Where do you need me next?`;
 }
 
+interface ReflectionResult {
+  reflection: string;
+  identity: string;
+  dreams: string;
+  strengths: string;
+  blindSpots: string;
+  cognitiveProfile: {
+    problemSolvingStyle: string;
+    temporalBias: string;
+    attentionSpan: string;
+    decisionHeuristics: string;
+  };
+  activeBeliefs: Array<{
+    belief: string;
+    strength: number;
+    lastTested: string;
+    evolution: string;
+  }>;
+}
+
 // Helper to run Reflection Engine analysis
 async function runWilliamReflection(
   chats: any[],
   chronicles: any[],
   portrait: Portrait,
   apiKey?: string
-): Promise<{ reflection: string; identity: string; dreams: string; strengths: string; blindSpots: string }> {
+): Promise<ReflectionResult> {
   
   if (apiKey) {
     const chatStream = chats.map(c => `- ${c.sender === 'user' ? 'User' : 'William'}: "${c.text}"`).join('\n');
@@ -94,16 +121,24 @@ ${chatStream || 'No active chats today.'}
 [Timeline Chronicle today]:
 ${timelineStream || 'No timeline logs recorded today.'}
 
+Review the active beliefs:
+${JSON.stringify(portrait.activeBeliefs || [])}
+
 Now, write your nightly self-reflection about ${portrait.name || 'Friend'}. 
 What did you learn about them today? What surprised you? Did any beliefs about their identity, principles, or dreams change? 
-Evolve their portrait biography from static data lists to deep, synthesized understandings.
+Evolve their portrait biography from static data lists to deep, synthesized understandings of their cognition.
 
 Follow this EXACT format for your response:
 REFLECTION: [3-4 sentence paragraph of your understanding of their patterns, strengths, or barriers today.]
 IDENTITY: [1 sentence synthesis of their long-term path]
 DREAMS: [1 sentence update of their primary dreams/builds]
 STRENGTHS: [Updated list of key strengths]
-BLIND_SPOTS: [Updated list of their primary struggles/fears today]`;
+BLIND_SPOTS: [Updated list of their primary struggles/fears today]
+COGNITIVE_STYLE: [1 sentence summarizing their problem solving heuristics]
+TEMPORAL_BIAS: [1 sentence summarizing their time estimation patterns]
+ATTENTION_SPAN: [1 sentence attention capacity and focus fatigue limits]
+DECISION_HEURISTICS: [1 sentence description of how they make key choices]
+BELIEFS_EVOLUTION: [Updated list of active beliefs with their strengths and status, as a JSON array of objects like {"belief": "...", "strength": 0.8, "lastTested": "Today", "evolution": "..."}]`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     try {
@@ -112,7 +147,7 @@ BLIND_SPOTS: [Updated list of their primary struggles/fears today]`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 500 }
+          generationConfig: { maxOutputTokens: 600 }
         })
       });
       const json: any = await response.json();
@@ -124,9 +159,36 @@ BLIND_SPOTS: [Updated list of their primary struggles/fears today]`;
       const dreams = text.match(/DREAMS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.dreams;
       const strengths = text.match(/STRENGTHS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.strengths;
       const blindSpots = text.match(/BLIND_SPOTS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.blind_spots;
+      const style = text.match(/COGNITIVE_STYLE:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.problemSolvingStyle;
+      const bias = text.match(/TEMPORAL_BIAS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.temporalBias;
+      const span = text.match(/ATTENTION_SPAN:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.attentionSpan;
+      const heur = text.match(/DECISION_HEURISTICS:\s*(.*?)(?=\n[A-Z_]+:|$)/s)?.[1]?.trim() || portrait.cognitiveProfile.decisionHeuristics;
+      
+      let parsedBeliefs = portrait.activeBeliefs || [];
+      try {
+        const beliefsStr = text.match(/BELIEFS_EVOLUTION:\s*(.*?)$/s)?.[1]?.trim() || '';
+        if (beliefsStr.startsWith('[') && beliefsStr.endsWith(']')) {
+          parsedBeliefs = JSON.parse(beliefsStr);
+        }
+      } catch (e) {
+        console.warn('Failed to parse beliefs JSON evolution from reasoner, using previous.');
+      }
 
       if (reflection) {
-        return { reflection, identity, dreams, strengths, blindSpots };
+        return {
+          reflection,
+          identity,
+          dreams,
+          strengths,
+          blindSpots,
+          cognitiveProfile: {
+            problemSolvingStyle: style,
+            temporalBias: bias,
+            attentionSpan: span,
+            decisionHeuristics: heur
+          },
+          activeBeliefs: parsedBeliefs
+        };
       }
     } catch (e) {
       console.error('Error calling Gemini in Reflection Engine:', e);
@@ -143,7 +205,21 @@ BLIND_SPOTS: [Updated list of their primary struggles/fears today]`;
       identity: `${portrait.name || 'Benjamin'} is a developer constructing deep systems while learning to navigate cognitive fatigue.`,
       dreams: `Compiling the Atlas architectural companion into a functional, live product.`,
       strengths: `Systemic planning, code resolution, quiet persistence.`,
-      blindSpots: `A tendency to isolate himself during high-focus sessions, neglecting physical and recovery boundaries.`
+      blindSpots: `A tendency to isolate himself during high-focus sessions, neglecting physical and recovery boundaries.`,
+      cognitiveProfile: {
+        problemSolvingStyle: "System-builder (prefers architectural foundations over spontaneous routines)",
+        temporalBias: "Consistently overestimates 1-week output while underestimating 3-month compounding gains",
+        attentionSpan: "Deep focus capabilities (~4 hours), followed by steep cognitive drops if rest is ignored",
+        decisionHeuristics: "Uses code actualization to resolve ambiguity rather than discussing specs"
+      },
+      activeBeliefs: [
+        {
+          belief: "I must write complete foundations before exposing ideas.",
+          strength: 0.8,
+          lastTested: "Today",
+          evolution: "Recognized as an avoidant pattern preventing early validation."
+        }
+      ]
     };
   }
 
@@ -153,7 +229,21 @@ BLIND_SPOTS: [Updated list of their primary struggles/fears today]`;
       identity: `A patient builder of tools learning to match daily ambitions to energy constraints.`,
       dreams: `Constructing lasting strategic systems while protecting focus.`,
       strengths: `Vulnerability, deep self-awareness, willingness to debug constraints.`,
-      blindSpots: `Treating rest as an afterthought rather than a core component of compile cycles.`
+      blindSpots: `Treating rest as an afterthought rather than a core component of compile cycles.`,
+      cognitiveProfile: {
+        problemSolvingStyle: "System-builder (prefers architectural foundations over spontaneous routines)",
+        temporalBias: "Underestimates 3-month compound growth; overestimates 1-week execution limits",
+        attentionSpan: "High-intensity deep work blocks, susceptible to rapid burnout if rest is neglected",
+        decisionHeuristics: "Prefers writing structured code to resolve ambiguity rather than discussing specs"
+      },
+      activeBeliefs: [
+        {
+          belief: "I must force willpower to overcome fatigue.",
+          strength: 0.75,
+          lastTested: "Today",
+          evolution: "Evolved to recognize willpower as a depleted resource under load."
+        }
+      ]
     };
   }
 
@@ -162,7 +252,9 @@ BLIND_SPOTS: [Updated list of their primary struggles/fears today]`;
     identity: portrait.identity,
     dreams: portrait.dreams,
     strengths: portrait.strengths,
-    blindSpots: portrait.blind_spots
+    blindSpots: portrait.blind_spots,
+    cognitiveProfile: portrait.cognitiveProfile,
+    activeBeliefs: portrait.activeBeliefs
   };
 }
 
@@ -295,7 +387,14 @@ app.post('/api/reasoner', async (req: Request, res: Response) => {
       dreams: 'Product actualization',
       relationships: 'Companion circle',
       decision_patterns: [],
-      growth: []
+      growth: [],
+      cognitiveProfile: {
+        problemSolvingStyle: 'System-builder',
+        temporalBias: 'Overestimates week; underestimates quarter',
+        attentionSpan: 'High intensity blocks',
+        decisionHeuristics: 'Code over specification'
+      },
+      activeBeliefs: []
     };
 
     const reply = await generateWilliamResponse(text, portrait, apiKey);
@@ -346,7 +445,9 @@ app.post('/api/reflection-engine', async (req: Request, res: Response) => {
       dreams: analysis.dreams,
       strengths: analysis.strengths,
       blind_spots: analysis.blindSpots,
-      growth: [...portrait.growth, `William reflection: "${analysis.reflection}"`]
+      growth: [...portrait.growth, `William reflection: "${analysis.reflection}"`],
+      cognitiveProfile: analysis.cognitiveProfile,
+      activeBeliefs: analysis.activeBeliefs
     };
 
     await savePortrait(updatedPortrait);

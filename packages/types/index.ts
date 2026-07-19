@@ -105,6 +105,18 @@ export interface Portrait {
   relationships: string;    // Crucial relationships & circle
   decision_patterns: string[]; // Decision patterns noticed
   growth: string[];         // Chronological growth / biography logs
+  cognitiveProfile: {
+    problemSolvingStyle: string;
+    temporalBias: string;
+    attentionSpan: string;
+    decisionHeuristics: string;
+  };
+  activeBeliefs: Array<{
+    belief: string;
+    strength: number; // 0.0 to 1.0 representation
+    lastTested: string;
+    evolution: string;
+  }>;
 }
 
 export interface Journey {

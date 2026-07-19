@@ -27,8 +27,21 @@ export async function getDatabase(): Promise<Database> {
       dreams TEXT,
       relationships TEXT,
       decision_patterns TEXT, -- JSON array
-      growth TEXT             -- JSON array
+      growth TEXT,            -- JSON array
+      cognitive_profile TEXT, -- JSON object
+      active_beliefs TEXT     -- JSON array
     );
+  `);
+
+  // Self-healing migrations for existing database files
+  try {
+    await db.exec(`ALTER TABLE portrait ADD COLUMN cognitive_profile TEXT;`);
+  } catch (e) {}
+  try {
+    await db.exec(`ALTER TABLE portrait ADD COLUMN active_beliefs TEXT;`);
+  } catch (e) {}
+
+  await db.exec(`
 
     CREATE TABLE IF NOT EXISTS journeys (
       id TEXT PRIMARY KEY,

@@ -859,6 +859,62 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                       </div>
                     </div>
 
+                    {/* Cognitive Profile Card */}
+                    <div style={{ padding: '24px', background: 'var(--bg-surface)', border: '1px solid var(--border-hairline)', borderRadius: '12px', gridColumn: '1 / -1' }}>
+                      <span className="zen-caption" style={{ textTransform: 'uppercase', color: 'var(--text-primary)', opacity: 0.8 }}>Theory of Mind — Cognitive Profile</span>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '16px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Problem Solving Heuristic</span>
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                            {portrait.cognitiveProfile?.problemSolvingStyle || 'Loading heuristics...'}
+                          </p>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Temporal Estimation Bias</span>
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                            {portrait.cognitiveProfile?.temporalBias || 'Loading bias...'}
+                          </p>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Attention & Fatigue Limits</span>
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                            {portrait.cognitiveProfile?.attentionSpan || 'Loading limits...'}
+                          </p>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Decision Heuristics</span>
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                            {portrait.cognitiveProfile?.decisionHeuristics || 'Loading heuristics...'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Beliefs Card */}
+                    <div style={{ padding: '24px', background: 'var(--bg-surface)', border: '1px solid var(--border-hairline)', borderRadius: '12px', gridColumn: '1 / -1' }}>
+                      <span className="zen-caption" style={{ textTransform: 'uppercase', color: 'var(--text-primary)', opacity: 0.8 }}>Active Belief System</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+                        {(portrait.activeBeliefs || []).map((item, idx) => (
+                          <div key={idx} style={{ borderLeft: '3px solid var(--border-hairline)', paddingLeft: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.9375rem', fontWeight: 500, color: 'var(--text-primary)' }}>
+                                {item.belief}
+                              </span>
+                              <span style={{ fontSize: '0.6875rem', background: 'var(--focus-glow)', border: '1px solid var(--border-hairline)', padding: '2px 8px', borderRadius: '12px' }}>
+                                Strength: {Math.round(item.strength * 100)}%
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                              Evolution: {item.evolution} (last verified: {item.lastTested})
+                            </p>
+                          </div>
+                        ))}
+                        {(!portrait.activeBeliefs || portrait.activeBeliefs.length === 0) && (
+                          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No active beliefs tracked yet. Run a reflection cycle to populate.</span>
+                        )}
+                      </div>
+                    </div>
+
                     {/* The Chronicle (Timeline of Life) */}
                     <div style={{ padding: '24px', background: 'var(--bg-surface)', border: '1px solid var(--border-hairline)', borderRadius: '12px', gridColumn: '1 / -1' }}>
                       <span className="zen-caption" style={{ textTransform: 'uppercase' }}>The Chronicle (Timeline of Life)</span>

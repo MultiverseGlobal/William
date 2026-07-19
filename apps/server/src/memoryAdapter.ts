@@ -27,7 +27,14 @@ export async function getPortrait(): Promise<Portrait | null> {
       dreams: data.dreams,
       relationships: data.relationships,
       decision_patterns: data.decision_patterns || [],
-      growth: data.growth || []
+      growth: data.growth || [],
+      cognitiveProfile: data.cognitive_profile || {
+        problemSolvingStyle: 'System-builder (prefers architectural foundations over spontaneous routines)',
+        temporalBias: 'Underestimates 3-month compound growth; overestimates 1-week execution limits',
+        attentionSpan: 'High-intensity deep work blocks, susceptible to rapid burnout if rest is neglected',
+        decisionHeuristics: 'Prefers writing structured code to resolve ambiguity rather than discussing specs'
+      },
+      activeBeliefs: data.active_beliefs || []
     };
   } else {
     const db = await getDatabase();
@@ -43,7 +50,9 @@ export async function getPortrait(): Promise<Portrait | null> {
       dreams: row.dreams,
       relationships: row.relationships,
       decision_patterns: JSON.parse(row.decision_patterns || '[]'),
-      growth: JSON.parse(row.growth || '[]')
+      growth: JSON.parse(row.growth || '[]'),
+      cognitiveProfile: JSON.parse(row.cognitive_profile || '{"problemSolvingStyle":"System-builder (prefers architectural foundations over spontaneous routines)","temporalBias":"Underestimates 3-month compound growth; overestimates 1-week execution limits","attentionSpan":"High-intensity deep work blocks, susceptible to rapid burnout if rest is neglected","decisionHeuristics":"Prefers writing structured code to resolve ambiguity rather than discussing specs"}'),
+      activeBeliefs: JSON.parse(row.active_beliefs || '[]')
     };
   }
 }
@@ -61,14 +70,16 @@ export async function savePortrait(p: Portrait): Promise<void> {
       dreams: p.dreams,
       relationships: p.relationships,
       decision_patterns: p.decision_patterns,
-      growth: p.growth
+      growth: p.growth,
+      cognitive_profile: p.cognitiveProfile,
+      active_beliefs: p.activeBeliefs
     });
     if (error) throw error;
   } else {
     const db = await getDatabase();
     await db.run(`
-      INSERT INTO portrait (id, name, identity, values, principles, strengths, blind_spots, dreams, relationships, decision_patterns, growth)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO portrait (id, name, identity, values, principles, strengths, blind_spots, dreams, relationships, decision_patterns, growth, cognitive_profile, active_beliefs)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
         identity = excluded.identity,
@@ -79,7 +90,9 @@ export async function savePortrait(p: Portrait): Promise<void> {
         dreams = excluded.dreams,
         relationships = excluded.relationships,
         decision_patterns = excluded.decision_patterns,
-        growth = excluded.growth
+        growth = excluded.growth,
+        cognitive_profile = excluded.cognitive_profile,
+        active_beliefs = excluded.active_beliefs
     `,
       'user_1',
       p.name,
@@ -91,7 +104,9 @@ export async function savePortrait(p: Portrait): Promise<void> {
       p.dreams,
       p.relationships,
       JSON.stringify(p.decision_patterns),
-      JSON.stringify(p.growth)
+      JSON.stringify(p.growth),
+      JSON.stringify(p.cognitiveProfile),
+      JSON.stringify(p.activeBeliefs)
     );
   }
 }

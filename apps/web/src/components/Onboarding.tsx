@@ -177,7 +177,21 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       dreams: building,
       relationships: 'Companion circle',
       decision_patterns: ['Prefers system redesign over raw motivation'],
-      growth: ['Portrait established through initial dialogue.']
+      growth: ['Portrait established through initial dialogue.'],
+      cognitiveProfile: {
+        problemSolvingStyle: 'System-builder (prefers architectural foundations over spontaneous routines)',
+        temporalBias: 'Underestimates 3-month compound growth; overestimates 1-week execution limits',
+        attentionSpan: 'High-intensity deep work blocks, susceptible to rapid burnout if rest is neglected',
+        decisionHeuristics: 'Prefers writing structured code to resolve ambiguity rather than discussing specs'
+      },
+      activeBeliefs: [
+        {
+          belief: 'I must build complete foundations before exposing ideas.',
+          strength: 0.8,
+          lastTested: 'Today',
+          evolution: 'Initial baseline seeded during onboarding.'
+        }
+      ]
     };
 
     // Initialize 5 primary Journeys
