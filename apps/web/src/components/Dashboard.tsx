@@ -23,6 +23,13 @@ interface ChatMessage {
   time: string;
 }
 
+interface TimelineItem {
+  id: string;
+  time: string;
+  category: string;
+  text: string;
+}
+
 export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [deviceType, setDeviceType] = useState<'desktop' | 'mobile'>('desktop');
@@ -34,6 +41,82 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   const [portrait, setPortrait] = useState<Portrait>(initialData.portrait);
   const [journeys, setJourneys] = useState<Journey[]>(initialData.journeys);
   const [library, setLibrary] = useState<LibraryItem[]>(initialData.library);
+
+  const API_URL = 'http://localhost:3005';
+
+  const fetchJson = async (endpoint: string, options?: RequestInit) => {
+    try {
+      const res = await fetch(`${API_URL}${endpoint}`, options);
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn(`William Companion Server offline or loading locally:`, e);
+    }
+    return null;
+  };
+
+  // Timeline logs
+  const [historyLogs, setHistoryLogs] = useState<TimelineItem[]>([
+    { id: 'h1', time: '08:00 AM', category: 'system', text: 'William companion instance initialized.' },
+    { id: 'h2', time: 'Yesterday', category: 'milestone', text: 'Portrait initialized through conversational onboarding.' }
+  ]);
+
+  // Load database values on component mount
+  useEffect(() => {
+    async function loadData() {
+      const apiPortrait = await fetchJson('/api/portrait');
+      if (apiPortrait) {
+        setPortrait(apiPortrait);
+      } else {
+        await fetchJson('/api/portrait', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(initialData.portrait)
+        });
+      }
+      
+      const apiJourneys = await fetchJson('/api/journeys');
+      if (apiJourneys && apiJourneys.length > 0) {
+        setJourneys(apiJourneys);
+      } else {
+        for (const j of initialData.journeys) {
+          await fetchJson('/api/journeys', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(j)
+          });
+        }
+      }
+
+      const apiLibrary = await fetchJson('/api/library');
+      if (apiLibrary && apiLibrary.length > 0) {
+        setLibrary(apiLibrary);
+      } else {
+        for (const item of initialData.library) {
+          await fetchJson('/api/library', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item)
+          });
+        }
+      }
+
+      const apiChronicle = await fetchJson('/api/chronicle');
+      if (apiChronicle && apiChronicle.length > 0) {
+        setHistoryLogs(apiChronicle);
+      }
+
+      const dChats = await fetchJson('/api/chats?session=desktop');
+      if (dChats && dChats.length > 0) {
+        setDesktopChatLogs(dChats);
+      }
+
+      const mChats = await fetchJson('/api/chats?session=mobile');
+      if (mChats && mChats.length > 0) {
+        setMobileChatLogs(mChats);
+      }
+    }
+    loadData();
+  }, []);
 
   // Conversational logs
   const [desktopChatLogs, setDesktopChatLogs] = useState<ChatMessage[]>([
@@ -67,6 +150,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   // Study workspace interactive reflection dialog overlay
   const [isReflecting, setIsReflecting] = useState(false);
   const [reflectionStep, setReflectionStep] = useState(0);
+  
+  // Reflection Engine Simulation States
+  const [isReflectionLoading, setIsReflectionLoading] = useState(false);
+  const [reflectionOverlayText, setReflectionOverlayText] = useState<string | null>(null);
+
+  const triggerReflectionCycle = async () => {
+    setIsReflectionLoading(true);
+    const res = await fetchJson('/api/reflection-engine', { method: 'POST' });
+    setIsReflectionLoading(false);
+    if (res && res.success) {
+      setReflectionOverlayText(res.reflection);
+      // Reload portrait & chronicle logs
+      const apiPortrait = await fetchJson('/api/portrait');
+      if (apiPortrait) setPortrait(apiPortrait);
+      const apiChronicle = await fetchJson('/api/chronicle');
+      if (apiChronicle) setHistoryLogs(apiChronicle);
+    } else {
+      alert('Failed to trigger reflection cycle. Is the server running?');
+    }
+  };
   const [eveningSurprise, setEveningSurprise] = useState('');
   const [eveningBurden, setEveningBurden] = useState('');
   const [eveningAlign, setEveningAlign] = useState('');
@@ -139,7 +242,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   };
 
   // Desktop Study chat send
-  const handleSendDesktopChat = (e: React.FormEvent) => {
+  const handleSendDesktopChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
@@ -150,36 +253,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
     const userMsg: ChatMessage = { id: `duser_${Date.now()}`, sender: 'user', text: userText, time };
     setDesktopChatLogs(prev => [...prev, userMsg]);
 
-    // Simulate William response
-    setTimeout(() => {
-      let reply = "I understand. Let's document this lesson in your Portrait Growth timeline.";
-      if (userText.toLowerCase().includes('help') || userText.toLowerCase().includes('struggle')) {
-        reply = "Acknowledged. Let's place this in your Blind Spots so we can strategy around systems instead of raw willpower.";
-        setPortrait((prev: Portrait) => ({
-          ...prev,
-          blind_spots: prev.blind_spots ? `${prev.blind_spots} | Discussed: ${userText}` : `Discussed: ${userText}`
-        }));
-        triggerHighlight('blind_spots');
-      } else if (userText.toLowerCase().includes('goal') || userText.toLowerCase().includes('build')) {
-        reply = "Atlas systems are expanding. I've updated your Dreams roadmap.";
-        setPortrait((prev: Portrait) => ({
-          ...prev,
-          dreams: prev.dreams ? `${prev.dreams} | ${userText}` : userText
-        }));
-        triggerHighlight('dreams');
-      }
+    const res = await fetchJson('/api/reasoner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: userText, session: 'desktop' })
+    });
 
+    if (res && res.reply) {
       setDesktopChatLogs(prev => [...prev, {
         id: `dwilliam_${Date.now()}`,
         sender: 'william',
-        text: reply,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        text: res.reply,
+        time
       }]);
-    }, 1000);
+      const apiPortrait = await fetchJson('/api/portrait');
+      if (apiPortrait) setPortrait(apiPortrait);
+    }
   };
 
   // Mobile Chat send
-  const handleSendMobileChat = (e: React.FormEvent) => {
+  const handleSendMobileChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mobileChatInput.trim()) return;
 
@@ -189,27 +282,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setMobileChatLogs(prev => [...prev, { id: `muser_${Date.now()}`, sender: 'user', text: userText, time }]);
 
-    setTimeout(() => {
+    const res = await fetchJson('/api/reasoner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: userText, session: 'mobile' })
+    });
+
+    if (res && res.reply) {
       setMobileChatLogs(prev => [...prev, {
         id: `mwilliam_${Date.now()}`,
         sender: 'william',
-        text: "Captured as a mobile presence update. Enjoy your day.",
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        text: res.reply,
+        time
       }]);
-    }, 1000);
+    }
   };
 
   // Submit evening reflection from study
-  const handleReflectionSubmit = (e: React.FormEvent) => {
+  const handleReflectionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const summary = `Reflection surprise: ${eveningSurprise}. Burden: ${eveningBurden}. Alignment: ${eveningAlign}. Remember: ${eveningRemember}.`;
     
     // Add growth biography entry
-    setPortrait((prev: Portrait) => ({
-      ...prev,
-      growth: [...prev.growth, `Evening reflection: ${summary}`],
-      decision_patterns: [...prev.decision_patterns, `Reflected on aligning actions to patient identity.`]
-    }));
+    const updatedGrowth = [...portrait.growth, `Evening reflection: ${summary}`];
+    const updatedPortrait = {
+      ...portrait,
+      growth: updatedGrowth,
+      decision_patterns: [...portrait.decision_patterns, `Reflected on aligning actions to patient identity.`]
+    };
+    
+    setPortrait(updatedPortrait);
+    
+    await fetchJson('/api/portrait', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedPortrait)
+    });
+
+    await fetchJson('/api/chronicle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'Submitted evening reflection.', category: 'reflection' })
+    });
+
     triggerHighlight('growth');
     triggerHighlight('decision_patterns');
 
@@ -252,7 +367,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   }, [mobileCaptureType]);
 
   // Handle mobile thought upload
-  const handleMobileCaptureSave = () => {
+  const handleMobileCaptureSave = async () => {
     if (!captureInputText.trim()) return;
     const capturedText = captureInputText.trim();
     setCaptureInputText('');
@@ -269,32 +384,114 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
       dateAdded: 'Today',
       tags: [tag, 'mobile']
     };
+    
     setLibrary((prev: LibraryItem[]) => [...prev, newItem]);
+    
+    await fetchJson('/api/library', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newItem)
+    });
 
     // Update Portrait
-    setPortrait((prev: Portrait) => ({
-      ...prev,
-      growth: [...prev.growth, `Captured ${tag} presence: "${capturedText.substring(0, 50)}..."`]
-    }));
+    const updatedPortrait = {
+      ...portrait,
+      growth: [...portrait.growth, `Captured ${tag} presence: "${capturedText.substring(0, 50)}..."`]
+    };
+    setPortrait(updatedPortrait);
+    
+    await fetchJson('/api/portrait', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedPortrait)
+    });
     triggerHighlight('growth');
 
     // Add journey milestone or timeline
-    setJourneys((prev: Journey[]) => prev.map((j: Journey) => {
+    const updatedJourneys = journeys.map((j: Journey) => {
       if (j.id === 'j1') {
-        return {
+        const updatedJ = {
           ...j,
           timeline: [{ date: 'Today', text: `${typeLabel}: ${capturedText}` }, ...j.timeline]
         };
+        fetchJson('/api/journeys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedJ)
+        });
+        return updatedJ;
       }
       return j;
-    }));
+    });
+    setJourneys(updatedJourneys);
+
+    await fetchJson('/api/chronicle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: `Captured [${typeLabel}]: "${capturedText}"`, category: 'thought' })
+    });
 
     setMobileCaptureType(null);
+  };
+
+  const triggerObserverSync = async (provider: string) => {
+    const res = await fetchJson('/api/observer/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider })
+    });
+    if (res && res.success) {
+      alert(`Observer: ${res.log}`);
+      const apiPortrait = await fetchJson('/api/portrait');
+      if (apiPortrait) setPortrait(apiPortrait);
+      const apiChronicle = await fetchJson('/api/chronicle');
+      if (apiChronicle) setHistoryLogs(apiChronicle);
+    }
   };
 
   return (
     <div className="zen-container" style={{ justifyContent: 'flex-start', minHeight: '100vh', paddingBottom: '80px' }}>
       
+      {/* Nightly Reflection Overlay */}
+      {reflectionOverlayText && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(9, 9, 11, 0.85)', backdropFilter: 'blur(12px)' }}>
+          <div 
+            style={{ 
+              width: '90%', 
+              maxWidth: '520px', 
+              background: 'var(--bg-surface)', 
+              border: '1px solid var(--border-hairline)', 
+              borderRadius: '24px', 
+              padding: '40px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px',
+              lineHeight: 1.8,
+              fontFamily: 'Georgia, serif'
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontSize: '3rem' }}>🌙</span>
+              <div style={{ marginTop: '16px' }}>
+                <span className="zen-caption" style={{ textTransform: 'uppercase', letterSpacing: '0.15em' }}>Presence</span>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 300, color: 'var(--text-primary)', marginTop: '8px' }}>Nightly Self-Reflection</h3>
+              </div>
+            </div>
+            <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'center', borderTop: '1px solid var(--border-hairline)', borderBottom: '1px solid var(--border-hairline)', padding: '24px 0' }}>
+              "{reflectionOverlayText}"
+            </p>
+            <button 
+              className="zen-btn" 
+              style={{ width: '100%', padding: '14px 0', borderRadius: '12px', fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer' }} 
+              onClick={() => setReflectionOverlayText(null)}
+            >
+              Step into Tomorrow
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Ambient glass glow */}
       <div 
         className="breathing-glow-mesh"
@@ -662,6 +859,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                       </div>
                     </div>
 
+                    {/* The Chronicle (Timeline of Life) */}
+                    <div style={{ padding: '24px', background: 'var(--bg-surface)', border: '1px solid var(--border-hairline)', borderRadius: '12px', gridColumn: '1 / -1' }}>
+                      <span className="zen-caption" style={{ textTransform: 'uppercase' }}>The Chronicle (Timeline of Life)</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                        {historyLogs.map((logItem) => (
+                          <div key={logItem.id} style={{ display: 'flex', gap: '16px', fontSize: '0.875rem', borderLeft: '2px solid var(--border-hairline)', paddingLeft: '12px', color: 'var(--text-secondary)' }}>
+                            <span style={{ color: 'var(--text-muted)', width: '70px', flexShrink: 0 }}>{logItem.time}</span>
+                            <span>{logItem.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               )}
@@ -746,7 +956,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                             <span className="zen-caption">Milestones</span>
                             <ul style={{ listStyle: 'none', padding: 0, marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                               {activeJourney.milestones.map((m, idx) => (
-                                <li key={idx} style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>• {m}</li>
+                                <li key={idx} style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', textDecoration: m.completed ? 'line-through' : 'none' }}>
+                                  {m.completed ? '✓' : '•'} {m.text}
+                                </li>
                               ))}
                             </ul>
                           </div>
@@ -880,6 +1092,41 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                         <span className="ios-slider-toggle" style={{ borderRadius: '24px' }}></span>
                       </label>
                     </div>
+
+                    {/* Observer Sync */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid var(--border-hairline)', paddingBottom: '16px' }}>
+                      <div>
+                        <div style={{ fontSize: '0.9375rem', fontWeight: 500 }}>Observer Sync (Integrations)</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Simulate fetching commits or notes to update Portrait.</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                        <button className="zen-btn-outline" style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem' }} onClick={() => triggerObserverSync('github')}>
+                          🐙 Sync GitHub Commits
+                        </button>
+                        <button className="zen-btn-outline" style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem' }} onClick={() => triggerObserverSync('notion')}>
+                          📓 Sync Notion Pages
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Reflection Engine */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid var(--border-hairline)', paddingBottom: '16px' }}>
+                      <div>
+                        <div style={{ fontSize: '0.9375rem', fontWeight: 500 }}>Reflection Engine (Nightly Cycle)</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Simulate William's nightly self-reflection. William will analyze today's logs and synthesize new understandings to evolve your Portrait.</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                        <button 
+                          className="zen-btn" 
+                          style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem' }} 
+                          onClick={triggerReflectionCycle}
+                          disabled={isReflectionLoading}
+                        >
+                          {isReflectionLoading ? 'Thinking...' : '⚡ Execute Reflection Cycle'}
+                        </button>
+                      </div>
+                    </div>
+
                     <div style={{ marginTop: '12px' }}>
                       <button className="zen-btn-outline" onClick={onReset} style={{ color: '#ef4444', borderColor: '#fca5a5', width: '100%' }}>
                         Reset Companion Study

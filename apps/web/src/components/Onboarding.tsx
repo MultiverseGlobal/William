@@ -189,7 +189,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         title: 'Mental Journey',
         currentState: 'Beginning strategy & presence check-ins.',
         vision: 'Clarity, patience, and high cognitive agency.',
-        milestones: ['Maintain daily morning strategy block', 'Reflect on evening decisions'],
+        milestones: [
+          { id: 'm1_1', text: 'Maintain daily morning strategy block', completed: false },
+          { id: 'm1_2', text: 'Reflect on evening decisions', completed: false }
+        ],
         memories: ['Onboarding conversation with William established'],
         lessons: ['Focus on systems rather than relying on sheer willpower.'],
         progress: 20,
@@ -202,7 +205,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         title: 'Physical Journey',
         currentState: 'Struggling to keep routines during high-stress weeks.',
         vision: 'Restored workout pacing and daily physical energy.',
-        milestones: ['Run 3 times a week', 'Bedtime wind-down by 10:30 PM'],
+        milestones: [
+          { id: 'm2_1', text: 'Run 3 times a week', completed: false },
+          { id: 'm2_2', text: 'Bedtime wind-down by 10:30 PM', completed: false }
+        ],
         memories: ['Recognized that stress breaks physical routines'],
         lessons: ['One meaningful step in each important area is enough.'],
         progress: 15,
@@ -215,7 +221,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         title: 'Financial Journey',
         currentState: 'Constructing independent products.',
         vision: 'Long-term financial system decoupling time from income.',
-        milestones: ['Launch version 1 of project', 'Acquire first 3 clients'],
+        milestones: [
+          { id: 'm3_1', text: 'Launch version 1 of project', completed: false },
+          { id: 'm3_2', text: 'Acquire first 3 clients', completed: false }
+        ],
         memories: ['Began constructing Atlas project'],
         lessons: ['Focus engineering blocks on what moves the client metrics'],
         progress: 10,
@@ -228,7 +237,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         title: 'Relationships Journey',
         currentState: 'Balanced and intentional connections.',
         vision: 'Deepening family bonds and peer partner dialogue.',
-        milestones: ['Call Mum weekly', 'Support founder peers'],
+        milestones: [
+          { id: 'm4_1', text: 'Call Mum weekly', completed: false },
+          { id: 'm4_2', text: 'Support founder peers', completed: false }
+        ],
         memories: ['Admitted that no human should have to face limitations alone'],
         lessons: ['Preserve human agency while sharing cognitive burden'],
         progress: 30,
@@ -241,7 +253,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         title: 'Legacy Journey',
         currentState: 'Designing systems for human actualization.',
         vision: 'Empowering self-becoming rather than corporate checklists.',
-        milestones: ['Deliver the study experience interface', 'Formulate a tool for companion growth'],
+        milestones: [
+          { id: 'm5_1', text: 'Deliver the study experience interface', completed: false },
+          { id: 'm5_2', text: 'Formulate a tool for companion growth', completed: false }
+        ],
         memories: ['Conceived companion system for human actualization'],
         lessons: ['Transform the operator, do not merely complete tasks.'],
         progress: 5,

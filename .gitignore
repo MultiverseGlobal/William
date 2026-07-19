@@ -11,3 +11,7 @@ build
 .next-pwa
 *.log
 .DS_Store
+william.db
+*.db
+*.db-journal
+

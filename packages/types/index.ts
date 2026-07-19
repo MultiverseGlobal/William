@@ -114,7 +114,7 @@ export interface Journey {
   title: string;
   currentState: string;
   vision: string;
-  milestones: string[];
+  milestones: Array<{ id: string; text: string; completed: boolean }>;
   memories: string[];
   lessons: string[];
   progress: number; // 0-100 percentage
