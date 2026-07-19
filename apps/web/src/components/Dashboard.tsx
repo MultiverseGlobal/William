@@ -439,6 +439,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
     }
   };
 
+  const handleToggleMilestone = async (journeyId: string, milestoneId: string) => {
+    const updatedJourneys = journeys.map((j: Journey) => {
+      if (j.id === journeyId) {
+        const updatedJ = {
+          ...j,
+          milestones: j.milestones.map(m => m.id === milestoneId ? { ...m, completed: !m.completed } : m)
+        };
+        const completedCount = updatedJ.milestones.filter(m => m.completed).length;
+        updatedJ.progress = Math.round((completedCount / updatedJ.milestones.length) * 100);
+
+        fetchJson('/api/journeys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedJ)
+        });
+        return updatedJ;
+      }
+      return j;
+    });
+    setJourneys(updatedJourneys);
+  };
+
   // Render simulated control deck
   const renderFloatingSimulationPanel = () => {
     return (
@@ -662,182 +684,414 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
         {/* CINEMATIC CANVAS */}
         <main className="cinematic-canvas">
           
-          {/* Big Breathing Orb Visualizer */}
-          <div className="breathing-assistant-orb-wrapper">
-            <div className="breathing-assistant-orb-ripple" />
-            <div className="breathing-assistant-orb-ripple" />
-            <div className="breathing-assistant-orb-ripple" />
-            <div className="breathing-assistant-orb-outer" />
-            <div className="breathing-assistant-orb-pulse" />
-            <div className="breathing-assistant-orb-glass-shield" />
-            <div className="breathing-assistant-orb" />
-          </div>
-
-          {/* Dialogue display in serif typography */}
-          <div className="cinematic-dialogue-box">
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={lastReplyText}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-                className="cinematic-dialogue-text"
-              >
-                "{lastReplyText}"
-              </motion.p>
-            </AnimatePresence>
-          </div>
-
-          {/* Quick reflection activator */}
-          {!isReflecting && (
-            <motion.button 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
-              whileHover={{ opacity: 1 }}
-              className="zen-btn-outline" 
-              style={{ fontSize: '0.75rem', padding: '6px 16px', borderRadius: '16px', marginTop: '16px' }}
-              onClick={() => setIsReflecting(true)}
+          {/* Glass segmented control tab bar */}
+          <div className="glass-nav-bar">
+            <button 
+              className={`glass-nav-item ${activeTab === 'home' ? 'active' : ''}`}
+              onClick={() => setActiveTab('home')}
             >
-              ✦ Trigger Strategy Reflection
-            </motion.button>
-          )}
+              Companion
+            </button>
+            <button 
+              className={`glass-nav-item ${activeTab === 'portrait' ? 'active' : ''}`}
+              onClick={() => setActiveTab('portrait')}
+            >
+              Living Portrait
+            </button>
+            <button 
+              className={`glass-nav-item ${activeTab === 'journeys' ? 'active' : ''}`}
+              onClick={() => setActiveTab('journeys')}
+            >
+              Active Journeys
+            </button>
+            <button 
+              className={`glass-nav-item ${activeTab === 'library' ? 'active' : ''}`}
+              onClick={() => setActiveTab('library')}
+            >
+              Room Library
+            </button>
+            <button 
+              className={`glass-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              Room Settings
+            </button>
+          </div>
 
-          {/* Evening reflection interactive block */}
-          {isReflecting && (
+          <AnimatePresence mode="wait">
             <motion.div
-              initial={{ scale: 0.98, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              style={{ 
-                width: '100%', 
-                maxWidth: '480px',
-                background: 'var(--bg-surface)', 
-                border: '1px solid var(--border-hairline)', 
-                borderRadius: '20px',
-                padding: '24px',
-                marginTop: '16px',
-                textAlign: 'left'
-              }}
+              key={activeTab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Evening Reflection</span>
-                <button className="zen-btn-outline" style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '12px' }} onClick={() => setIsReflecting(false)}>
-                  Close
+              {/* Home tab: Companion Visualizer */}
+              {activeTab === 'home' && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                  {/* Big Breathing Orb Visualizer */}
+                  <div className="breathing-assistant-orb-wrapper">
+                    <div className="breathing-assistant-orb-ripple" />
+                    <div className="breathing-assistant-orb-ripple" />
+                    <div className="breathing-assistant-orb-ripple" />
+                    <div className="breathing-assistant-orb-outer" />
+                    <div className="breathing-assistant-orb-pulse" />
+                    <div className="breathing-assistant-orb-glass-shield" />
+                    <div className="breathing-assistant-orb" />
+                  </div>
+
+                  {/* Dialogue display in serif typography */}
+                  <div className="cinematic-dialogue-box">
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={lastReplyText}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3 }}
+                        className="cinematic-dialogue-text"
+                      >
+                        "{lastReplyText}"
+                      </motion.p>
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Quick reflection activator */}
+                  {!isReflecting && (
+                    <motion.button 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.6 }}
+                      whileHover={{ opacity: 1 }}
+                      className="zen-btn-outline" 
+                      style={{ fontSize: '0.75rem', padding: '6px 16px', borderRadius: '16px', marginTop: '16px' }}
+                      onClick={() => setIsReflecting(true)}
+                    >
+                      ✦ Trigger Strategy Reflection
+                    </motion.button>
+                  )}
+
+                  {/* Evening reflection interactive block */}
+                  {isReflecting && (
+                    <motion.div
+                      initial={{ scale: 0.98, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      style={{ 
+                        width: '100%', 
+                        maxWidth: '480px',
+                        background: 'var(--bg-surface)', 
+                        border: '1px solid var(--border-hairline)', 
+                        borderRadius: '20px',
+                        padding: '24px',
+                        marginTop: '16px',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Evening Reflection</span>
+                        <button className="zen-btn-outline" style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '12px' }} onClick={() => setIsReflecting(false)}>
+                          Close
+                        </button>
+                      </div>
+
+                      <form onSubmit={handleReflectionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {reflectionStep === 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>What surprised you today?</span>
+                            <input 
+                              type="text" 
+                              className="zen-input" 
+                              value={eveningSurprise} 
+                              onChange={(e) => setEveningSurprise(e.target.value)} 
+                              placeholder="e.g. Atlas architecture compiled on first attempt"
+                              autoFocus 
+                            />
+                            <button type="button" className="zen-btn" style={{ marginTop: '8px' }} onClick={() => setReflectionStep(1)} disabled={!eveningSurprise.trim()}>
+                              Next
+                            </button>
+                          </div>
+                        )}
+
+                        {reflectionStep === 1 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>What burden felt lighter?</span>
+                            <input 
+                              type="text" 
+                              className="zen-input" 
+                              value={eveningBurden} 
+                              onChange={(e) => setEveningBurden(e.target.value)} 
+                              placeholder="e.g. Delegating deployment steps"
+                              autoFocus 
+                            />
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                              <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(0)}>Back</button>
+                              <button type="button" className="zen-btn" onClick={() => setReflectionStep(2)} disabled={!eveningBurden.trim()}>Next</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {reflectionStep === 2 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>Did actions resemble the person you're becoming?</span>
+                            <input 
+                              type="text" 
+                              className="zen-input" 
+                              value={eveningAlign} 
+                              onChange={(e) => setEveningAlign(e.target.value)} 
+                              placeholder="e.g. Yes, maintained calm deep-work session"
+                              autoFocus 
+                            />
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                              <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(1)}>Back</button>
+                              <button type="button" className="zen-btn" onClick={() => setReflectionStep(3)} disabled={!eveningAlign.trim()}>Next</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {reflectionStep === 3 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>What deserves remembering?</span>
+                            <input 
+                              type="text" 
+                              className="zen-input" 
+                              value={eveningRemember} 
+                              onChange={(e) => setEveningRemember(e.target.value)} 
+                              placeholder="e.g. Quality of focus shapes the entire week"
+                              autoFocus 
+                            />
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                              <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(2)}>Back</button>
+                              <button type="submit" className="zen-btn" disabled={!eveningRemember.trim()}>Submit Reflection</button>
+                            </div>
+                          </div>
+                        )}
+                      </form>
+                    </motion.div>
+                  )}
+                </div>
+              )}
+
+              {/* Portrait tab */}
+              {activeTab === 'portrait' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', width: '100%' }}>
+                  <div className="dashboard-card" style={{ border: highlightedCategory === 'identity' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
+                    <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Identity</span>
+                    <h4 style={{ fontSize: '1.25rem', fontWeight: 300, marginTop: '8px', fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+                      "{portrait.identity}"
+                    </h4>
+                  </div>
+                  <div className="dashboard-card" style={{ border: highlightedCategory === 'values' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
+                    <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Values</span>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                      {portrait.values}
+                    </p>
+                  </div>
+                  <div className="dashboard-card" style={{ border: highlightedCategory === 'principles' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
+                    <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Principles</span>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px', fontStyle: 'italic' }}>
+                      "{portrait.principles}"
+                    </p>
+                  </div>
+                  <div className="dashboard-card" style={{ border: highlightedCategory === 'strengths' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
+                    <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Strengths</span>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                      {portrait.strengths}
+                    </p>
+                  </div>
+                  <div className="dashboard-card" style={{ border: highlightedCategory === 'blind_spots' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
+                    <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Blind Spots & Fears</span>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                      {portrait.blind_spots}
+                    </p>
+                  </div>
+                  <div className="dashboard-card" style={{ border: highlightedCategory === 'relationships' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
+                    <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Companion Circle</span>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                      {portrait.relationships}
+                    </p>
+                  </div>
+                  <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+                    <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Cognitive Style Analysis</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginTop: '16px' }}>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Problem Solving Style</span>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginTop: '4px' }}>{portrait.cognitiveProfile?.problemSolvingStyle}</p>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Temporal Bias</span>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginTop: '4px' }}>{portrait.cognitiveProfile?.temporalBias}</p>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Attention Span Profile</span>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginTop: '4px' }}>{portrait.cognitiveProfile?.attentionSpan}</p>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Decision Heuristics</span>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginTop: '4px' }}>{portrait.cognitiveProfile?.decisionHeuristics}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Journeys tab */}
+              {activeTab === 'journeys' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', textAlign: 'left' }}>
+                  {journeys.map((journey) => (
+                    <div key={journey.id} className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontSize: '1.75rem' }}>{journey.icon}</span>
+                          <div>
+                            <h4 style={{ fontSize: '1.125rem', fontWeight: 500 }}>{journey.title}</h4>
+                            <span className="zen-caption">{journey.currentState}</span>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 200, color: 'var(--text-secondary)' }}>
+                          {journey.progress}%
+                        </span>
+                      </div>
+                      <div>
+                        <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Milestones Checklist</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                          {journey.milestones.map((m) => (
+                            <div 
+                              key={m.id} 
+                              style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem', opacity: m.completed ? 0.5 : 1, cursor: 'pointer' }}
+                              onClick={() => handleToggleMilestone(journey.id, m.id)}
+                            >
+                              <div style={{ width: '16px', height: '16px', border: '1px solid var(--border-hairline)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', background: m.completed ? 'var(--text-primary)' : 'transparent', color: 'var(--bg-surface)' }}>
+                                {m.completed && '✓'}
+                              </div>
+                              <span style={{ textDecoration: m.completed ? 'line-through' : 'none', color: 'var(--text-primary)' }}>{m.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Library tab */}
+              {activeTab === 'library' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', width: '100%' }}>
+                  {library.map((item) => (
+                    <div 
+                      key={item.id} 
+                      onClick={() => setSelectedLibraryItem(item)}
+                      className="dashboard-card"
+                      style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'space-between' }}
+                    >
+                      <div>
+                        <span className="zen-caption" style={{ textTransform: 'uppercase' }}>{item.type}</span>
+                        <h4 style={{ fontSize: '1.125rem', fontWeight: 500, marginTop: '4px' }}>{item.title}</h4>
+                        {item.author && <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>By {item.author}</span>}
+                      </div>
+                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        "{item.content}"
+                      </p>
+                    </div>
+                  ))}
+                  {selectedLibraryItem && (
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+                      <div className="dashboard-card" style={{ width: '90%', maxWidth: '480px', padding: '32px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignSelf: 'stretch', marginBottom: '16px' }}>
+                          <span className="zen-caption" style={{ textTransform: 'uppercase' }}>{selectedLibraryItem.type}</span>
+                          <button className="zen-btn-outline" style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '12px' }} onClick={() => setSelectedLibraryItem(null)}>
+                            Close
+                          </button>
+                        </div>
+                        <h3 style={{ fontSize: '1.375rem', fontWeight: 400, marginBottom: '4px' }}>{selectedLibraryItem.title}</h3>
+                        {selectedLibraryItem.author && <h5 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>By {selectedLibraryItem.author}</h5>}
+                        <p style={{ fontSize: '1rem', color: 'var(--text-primary)', fontStyle: 'italic', lineHeight: 1.6, padding: '16px 0', borderTop: '1px solid var(--border-hairline)', borderBottom: '1px solid var(--border-hairline)', marginBottom: '16px' }}>
+                          "{selectedLibraryItem.content}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Settings tab */}
+              {activeTab === 'settings' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+                  <div className="dashboard-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div>
+                      <div style={{ fontSize: '0.9375rem', fontWeight: 500 }}>Theme Mode</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Toggle between light (warm stone) and dark (deep carbon) aesthetics.</div>
+                    </div>
+                    <button className="zen-btn-outline" onClick={toggleTheme}>
+                      {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+                    </button>
+                  </div>
+                  <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+                    <div>
+                      <div style={{ fontSize: '0.9375rem', fontWeight: 500 }}>Observer Sync (Integrations)</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Sync repositories or notes to update Portrait.</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                      <button className="zen-btn-outline" style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem' }} onClick={() => triggerObserverSync('github')}>
+                        Sync GitHub
+                      </button>
+                      <button className="zen-btn-outline" style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem' }} onClick={() => triggerObserverSync('notion')}>
+                        Sync Notion
+                      </button>
+                    </div>
+                  </div>
+                  <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+                    <div>
+                      <div style={{ fontSize: '0.9375rem', fontWeight: 500 }}>Reflection Engine (Nightly Cycle)</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Trigger William's nightly self-reflection cycle manually.</div>
+                    </div>
+                    <button className="zen-btn" style={{ width: '100%', marginTop: '6px' }} onClick={triggerReflectionCycle} disabled={isReflectionLoading}>
+                      {isReflectionLoading ? 'Thinking...' : 'Execute Reflection Cycle'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Floating pill prompt bar (Visible only in companion home tab) */}
+          {activeTab === 'home' && (
+            <div className="floating-prompt-bar-wrapper">
+              {/* Quick Suggestions Pills */}
+              <div style={{ flexDirection: 'row', display: 'flex', gap: '8px', opacity: 0.8 }}>
+                <button 
+                  className="zen-btn-outline" 
+                  style={{ fontSize: '0.6875rem', padding: '4px 12px', borderRadius: '12px' }}
+                  onClick={() => setChatInput("Let's reflect on today's focus.")}
+                >
+                  📝 Reflect
+                </button>
+                <button 
+                  className="zen-btn-outline" 
+                  style={{ fontSize: '0.6875rem', padding: '4px 12px', borderRadius: '12px' }}
+                  onClick={() => setChatInput("Evolve my portrait beliefs.")}
+                >
+                  🔮 Evolve portrait
                 </button>
               </div>
 
-              <form onSubmit={handleReflectionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {reflectionStep === 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>What surprised you today?</span>
-                    <input 
-                      type="text" 
-                      className="zen-input" 
-                      value={eveningSurprise} 
-                      onChange={(e) => setEveningSurprise(e.target.value)} 
-                      placeholder="e.g. Atlas architecture compiled on first attempt"
-                      autoFocus 
-                    />
-                    <button type="button" className="zen-btn" style={{ marginTop: '8px' }} onClick={() => setReflectionStep(1)} disabled={!eveningSurprise.trim()}>
-                      Next
-                    </button>
-                  </div>
-                )}
-
-                {reflectionStep === 1 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>What burden felt lighter?</span>
-                    <input 
-                      type="text" 
-                      className="zen-input" 
-                      value={eveningBurden} 
-                      onChange={(e) => setEveningBurden(e.target.value)} 
-                      placeholder="e.g. Delegating deployment steps"
-                      autoFocus 
-                    />
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                      <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(0)}>Back</button>
-                      <button type="button" className="zen-btn" onClick={() => setReflectionStep(2)} disabled={!eveningBurden.trim()}>Next</button>
-                    </div>
-                  </div>
-                )}
-
-                {reflectionStep === 2 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>Did actions resemble the person you're becoming?</span>
-                    <input 
-                      type="text" 
-                      className="zen-input" 
-                      value={eveningAlign} 
-                      onChange={(e) => setEveningAlign(e.target.value)} 
-                      placeholder="e.g. Yes, maintained calm deep-work session"
-                      autoFocus 
-                    />
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                      <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(1)}>Back</button>
-                      <button type="button" className="zen-btn" onClick={() => setReflectionStep(3)} disabled={!eveningAlign.trim()}>Next</button>
-                    </div>
-                  </div>
-                )}
-
-                {reflectionStep === 3 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>What deserves remembering?</span>
-                    <input 
-                      type="text" 
-                      className="zen-input" 
-                      value={eveningRemember} 
-                      onChange={(e) => setEveningRemember(e.target.value)} 
-                      placeholder="e.g. Quality of focus shapes the entire week"
-                      autoFocus 
-                    />
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                      <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(2)}>Back</button>
-                      <button type="submit" className="zen-btn" disabled={!eveningRemember.trim()}>Submit Reflection</button>
-                    </div>
-                  </div>
-                )}
+              <form onSubmit={handleSendDesktopChat} className="floating-prompt-bar">
+                <input
+                  type="text"
+                  className="floating-prompt-input"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask William anything or reflect on your day..."
+                />
+                <button 
+                  type="submit" 
+                  className="floating-prompt-send-btn" 
+                  disabled={!chatInput.trim()}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
               </form>
-            </motion.div>
-          )}
-
-          {/* Floating pill prompt bar */}
-          <div className="floating-prompt-bar-wrapper">
-            {/* Quick Suggestions Pills */}
-            <div style={{ flexDirection: 'row', display: 'flex', gap: '8px', opacity: 0.8 }}>
-              <button 
-                className="zen-btn-outline" 
-                style={{ fontSize: '0.6875rem', padding: '4px 12px', borderRadius: '12px' }}
-                onClick={() => setChatInput("Let's reflect on today's focus.")}
-              >
-                📝 Reflect
-              </button>
-              <button 
-                className="zen-btn-outline" 
-                style={{ fontSize: '0.6875rem', padding: '4px 12px', borderRadius: '12px' }}
-                onClick={() => setChatInput("Evolve my portrait beliefs.")}
-              >
-                🔮 Evolve portrait
-              </button>
             </div>
-
-            <form onSubmit={handleSendDesktopChat} className="floating-prompt-bar">
-              <input
-                type="text"
-                className="floating-prompt-input"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask William anything or reflect on your day..."
-              />
-              <button 
-                type="submit" 
-                className="floating-prompt-send-btn" 
-                disabled={!chatInput.trim()}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-              </button>
-            </form>
-          </div>
+          )}
 
         </main>
 

@@ -544,7 +544,7 @@ body {
   max-width: 800px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start; /* Fix jumpiness by aligning to top */
   align-items: center;
   padding: 40px 24px 140px 24px; /* bottom padding space for floating bar */
   z-index: 5;
@@ -560,9 +560,62 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 56px;
+  margin-top: 20px;
+  margin-bottom: 32px;
   cursor: pointer;
   perspective: 1000px;
+}
+
+/* Frosted Glass Segmented Navigation Control */
+.glass-nav-bar {
+  display: flex;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-hairline);
+  border-radius: 20px;
+  padding: 4px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  margin-bottom: 24px;
+  z-index: 10;
+  box-shadow: var(--shadow-subtle);
+}
+
+.glass-nav-item {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.glass-nav-item:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.glass-nav-item.active {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Restoring dashboard cards for other tabs */
+.dashboard-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-subtle);
+  transition: border-color 0.2s ease;
+  text-align: left;
+}
+
+.dashboard-card:hover {
+  border-color: var(--text-secondary);
 }
 
 .breathing-assistant-orb {
