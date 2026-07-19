@@ -55,10 +55,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   };
 
   // Timeline logs
-  const [historyLogs, setHistoryLogs] = useState<TimelineItem[]>([
-    { id: 'h1', time: '08:00 AM', category: 'system', text: 'William companion instance initialized.' },
-    { id: 'h2', time: 'Yesterday', category: 'milestone', text: 'Portrait initialized through conversational onboarding.' }
-  ]);
+  const [historyLogs, setHistoryLogs] = useState<TimelineItem[]>([]);
 
   // Load database values on component mount
   useEffect(() => {
@@ -119,12 +116,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   }, []);
 
   // Conversational logs
-  const [desktopChatLogs, setDesktopChatLogs] = useState<ChatMessage[]>([
-    { id: 'c1', sender: 'william', text: "Welcome back. I have been keeping your place. Today, let's focus on structural growth rather than raw motivation.", time: '08:00 AM' }
-  ]);
-  const [mobileChatLogs, setMobileChatLogs] = useState<ChatMessage[]>([
-    { id: 'mc1', sender: 'william', text: "Walk beside me. I'm here when you need to capture a thought or seek direction.", time: '02:15 PM' }
-  ]);
+  const [desktopChatLogs, setDesktopChatLogs] = useState<ChatMessage[]>([]);
+  const [mobileChatLogs, setMobileChatLogs] = useState<ChatMessage[]>([]);
 
   // Input bindings
   const [chatInput, setChatInput] = useState('');
@@ -136,11 +129,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   const [simWavePulse, setSimWavePulse] = useState(false);
 
   // Mobile Focus Tasks Checklist
-  const [mobileTasks, setMobileTasks] = useState([
-    { id: 'mt1', text: 'Build Atlas', completed: false },
-    { id: 'mt2', text: 'Train', completed: false },
-    { id: 'mt3', text: 'Call Mum', completed: false }
-  ]);
+  const [mobileTasks, setMobileTasks] = useState<{ id: string; text: string; completed: boolean }[]>([]);
   const [newMobileTaskText, setNewMobileTaskText] = useState('');
 
   // Selected sub-tabs / expanded details
