@@ -11,7 +11,9 @@ import {
   ActivityIndicator,
   Modal,
   SafeAreaView,
-  StatusBar
+  StatusBar,
+  Animated,
+  Easing
 } from 'react-native';
 import type { Portrait, Journey, LibraryItem } from '@william/types';
 
@@ -35,6 +37,15 @@ export default function HomeScreen() {
   const [chatLogs, setChatLogs] = useState<ChatMessage[]>([]);
   const [currentTab, setCurrentTab] = useState<'chat' | 'journey' | 'portrait' | 'today'>('today');
   const [isLoading, setIsLoading] = useState(true);
+  const [isThinking, setIsThinking] = useState(false);
+
+  // Animated values for presence orb
+  const orbScale = useRef(new Animated.Value(1)).current;
+  const orbGlow = useRef(new Animated.Value(0.4)).current;
+  const rippleScale1 = useRef(new Animated.Value(1)).current;
+  const rippleOpacity1 = useRef(new Animated.Value(0)).current;
+  const rippleScale2 = useRef(new Animated.Value(1)).current;
+  const rippleOpacity2 = useRef(new Animated.Value(0)).current;
 
   // Onboarding states
   const [onboardStep, setOnboardStep] = useState(0);
@@ -49,6 +60,106 @@ export default function HomeScreen() {
   const [captureType, setCaptureType] = useState<null | 'speak' | 'write' | 'capture'>(null);
   const [captureText, setCaptureText] = useState('');
   const [simPulse, setSimPulse] = useState(false);
+
+  // Breathing loop animation
+  useEffect(() => {
+    const breathe = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(orbScale, {
+            toValue: 1.05,
+            duration: 2500,
+            easing: Easing.bezier(0.4, 0, 0.2, 1),
+            useNativeDriver: true,
+          }),
+          Animated.timing(orbGlow, {
+            toValue: 0.6,
+            duration: 2500,
+            easing: Easing.bezier(0.4, 0, 0.2, 1),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(orbScale, {
+            toValue: 0.95,
+            duration: 2500,
+            easing: Easing.bezier(0.4, 0, 0.2, 1),
+            useNativeDriver: true,
+          }),
+          Animated.timing(orbGlow, {
+            toValue: 0.3,
+            duration: 2500,
+            easing: Easing.bezier(0.4, 0, 0.2, 1),
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    );
+    breathe.start();
+
+    return () => breathe.stop();
+  }, []);
+
+  // Ripple visualizer loops for Speak mode
+  useEffect(() => {
+    let ripple1: Animated.CompositeAnimation | null = null;
+    let ripple2: Animated.CompositeAnimation | null = null;
+
+    if (captureType === 'speak') {
+      rippleScale1.setValue(1);
+      rippleOpacity1.setValue(0.5);
+      rippleScale2.setValue(1);
+      rippleOpacity2.setValue(0.5);
+
+      ripple1 = Animated.loop(
+        Animated.sequence([
+          Animated.parallel([
+            Animated.timing(rippleScale1, {
+              toValue: 2.2,
+              duration: 2000,
+              easing: Easing.out(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(rippleOpacity1, {
+              toValue: 0,
+              duration: 2000,
+              useNativeDriver: true,
+            }),
+          ]),
+        ])
+      );
+
+      ripple2 = Animated.loop(
+        Animated.sequence([
+          Animated.delay(1000),
+          Animated.parallel([
+            Animated.timing(rippleScale2, {
+              toValue: 2.2,
+              duration: 2000,
+              easing: Easing.out(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(rippleOpacity2, {
+              toValue: 0,
+              duration: 2000,
+              useNativeDriver: true,
+            }),
+          ]),
+        ])
+      );
+
+      ripple1.start();
+      ripple2.start();
+    } else {
+      rippleOpacity1.setValue(0);
+      rippleOpacity2.setValue(0);
+    }
+
+    return () => {
+      ripple1?.stop();
+      ripple2?.stop();
+    };
+  }, [captureType]);
 
   // Fetch API Helper
   const fetchJson = async (endpoint: string, options?: RequestInit) => {
@@ -177,12 +288,15 @@ export default function HomeScreen() {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMsg: ChatMessage = { id: `muser_${Date.now()}`, sender: 'user', text: userText, time };
     setChatLogs(prev => [...prev, userMsg]);
+    setIsThinking(true);
 
     const res = await fetchJson('/api/reasoner', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: userText, session: 'mobile' })
     });
+
+    setIsThinking(false);
 
     if (res && res.reply) {
       setChatLogs(prev => [...prev, {
@@ -546,43 +660,95 @@ export default function HomeScreen() {
           </ScrollView>
         )}
 
-        {/* Tab 4: Today Capture */}
+        {/* Tab 4: Today (Presence Walk) */}
         {currentTab === 'today' && (
-          <View style={[styles.tabContent, { padding: 24, justifyContent: 'center' }]}>
-            <View style={{ marginBottom: 40, alignItems: 'center' }}>
-              <Text style={{ fontSize: 13, textTransform: 'uppercase', color: '#a1a1aa', letterSpacing: 1.5, marginBottom: 4 }}>PRESENCE WALK</Text>
-              <Text style={{ fontSize: 20, color: '#f4f4f5', fontWeight: '300', textAlign: 'center' }}>What should William observe in your world?</Text>
+          <View style={[styles.tabContent, { padding: 24, justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#000000' }]}>
+            
+            {/* Top status header */}
+            <View style={{ alignItems: 'center', marginTop: 12 }}>
+              <Text style={{ fontSize: 10, textTransform: 'uppercase', color: '#71717a', letterSpacing: 2 }}>William Presence</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isThinking ? '#a78bfa' : '#10b981' }} />
+                <Text style={{ fontSize: 12, color: '#a1a1aa' }}>
+                  {isThinking ? 'Thinking...' : 'Idle'}
+                </Text>
+              </View>
             </View>
 
-            {/* 3 Giant Action Capture Buttons */}
-            <View style={styles.captureGrid}>
-              <TouchableOpacity
-                style={styles.captureBtn}
+            {/* Central Animated Breathing Orb */}
+            <View style={styles.orbWrapper}>
+              {/* Outer glow aura */}
+              <Animated.View 
+                style={[
+                  styles.orbOuterGlow,
+                  {
+                    transform: [{ scale: orbScale }],
+                    opacity: orbGlow
+                  }
+                ]}
+              />
+
+              {/* Central Sphere */}
+              <Animated.View 
+                style={[
+                  styles.orbSphere,
+                  {
+                    transform: [{ scale: orbScale }]
+                  }
+                ]}
+              >
+                {/* Core breathing center */}
+                <View style={styles.orbCore} />
+              </Animated.View>
+            </View>
+
+            {/* Dialogue bubble */}
+            <View style={{ width: '100%', paddingHorizontal: 12, marginBottom: 16, minHeight: 80, justifyContent: 'center' }}>
+              {isThinking ? (
+                <ActivityIndicator size="small" color="#ffffff" style={{ opacity: 0.5 }} />
+              ) : (
+                <Text style={{ fontSize: 16, color: '#f4f4f5', textAlign: 'center', fontStyle: 'italic', lineHeight: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}>
+                  {chatLogs.length > 0 && chatLogs.filter(l => l.sender === 'william').length > 0
+                    ? `"${chatLogs.filter(l => l.sender === 'william').slice(-1)[0].text}"`
+                    : '"Walk with me. Speak your mind, or write down what feels heavy."'}
+                </Text>
+              )}
+            </View>
+
+            {/* Actions & Prompts list */}
+            <View style={{ width: '100%', gap: 16, marginBottom: 12 }}>
+              
+              {/* Suggestions pills */}
+              <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <TouchableOpacity 
+                  style={styles.pillButton} 
+                  onPress={() => {
+                    setCaptureType('speak');
+                  }}
+                >
+                  <Text style={styles.pillText}>🎤 Speak observation</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.pillButton} 
+                  onPress={() => {
+                    setCaptureType('write');
+                  }}
+                >
+                  <Text style={styles.pillText}>⌨️ Write note</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Main giant record bar button */}
+              <TouchableOpacity 
+                style={styles.voiceRecordBar}
                 onPress={() => setCaptureType('speak')}
               >
-                <Text style={styles.captureIcon}>🎤</Text>
-                <Text style={styles.captureLabel}>Speak</Text>
-                <Text style={styles.captureDesc}>Simulate voice logger</Text>
+                <View style={styles.voiceRecordDot} />
+                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '600', letterSpacing: 0.5 }}>START VOICE WALK</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.captureBtn}
-                onPress={() => setCaptureType('write')}
-              >
-                <Text style={styles.captureIcon}>⌨️</Text>
-                <Text style={styles.captureLabel}>Write</Text>
-                <Text style={styles.captureDesc}>Type a quick note</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.captureBtn}
-                onPress={() => setCaptureType('capture')}
-              >
-                <Text style={styles.captureIcon}>📷</Text>
-                <Text style={styles.captureLabel}>Capture</Text>
-                <Text style={styles.captureDesc}>Camera observation</Text>
-              </TouchableOpacity>
             </View>
+
           </View>
         )}
 
@@ -599,41 +765,78 @@ export default function HomeScreen() {
             <Text style={styles.modalTitle}>
               {captureType === 'speak' ? 'Speech Recorder' : captureType === 'capture' ? 'Camera view' : 'Capture thought'}
             </Text>
-            <TouchableOpacity onPress={() => setCaptureType(null)}>
+            <TouchableOpacity onPress={() => { setCaptureType(null); setCaptureText(''); }}>
               <Text style={styles.closeBtnText}>Cancel</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.modalContent}>
             {captureType === 'speak' && (
-              <View style={{ alignItems: 'center', marginVertical: 32 }}>
-                <View style={[styles.pulseCircle, simPulse && styles.pulseActive]}>
-                  <Text style={{ fontSize: 28 }}>🎤</Text>
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 32 }}>
+                {/* Visualizer concentric ripples */}
+                <View style={styles.visualizerWrapper}>
+                  
+                  {/* Ripple Wave 1 */}
+                  <Animated.View 
+                    style={[
+                      styles.orbPulseRing,
+                      {
+                        transform: [{ scale: rippleScale1 }],
+                        opacity: rippleOpacity1
+                      }
+                    ]}
+                  />
+
+                  {/* Ripple Wave 2 */}
+                  <Animated.View 
+                    style={[
+                      styles.orbPulseRing,
+                      {
+                        transform: [{ scale: rippleScale2 }],
+                        opacity: rippleOpacity2
+                      }
+                    ]}
+                  />
+
+                  {/* Visualizer center core */}
+                  <Animated.View 
+                    style={[
+                      styles.orbSphere,
+                      {
+                        transform: [{ scale: orbScale }],
+                        backgroundColor: '#a78bfa'
+                      }
+                    ]}
+                  />
+
                 </View>
-                <Text style={styles.pulseText}>Recording voice presence transcript...</Text>
+                <Text style={styles.pulseText}>William is capturing presence walk logs...</Text>
               </View>
             )}
 
             {captureType === 'capture' && (
               <View style={styles.cameraFrame}>
-                <Text style={{ fontSize: 13, color: '#71717a' }}>[ camera viewfinder preview ]</Text>
+                <Text style={{ fontSize: 13, color: '#71717a' }}>[ camera view finder preview ]</Text>
               </View>
             )}
 
             <TextInput
-              style={styles.modalInput}
+              style={[
+                styles.modalInput,
+                captureType === 'speak' && { maxHeight: 100, flex: 0, height: 100 }
+              ]}
               value={captureText}
               onChangeText={setCaptureText}
               placeholder={
                 captureType === 'speak'
-                  ? 'Transcribe speaking description...'
+                  ? 'Transcribing speaking description...'
                   : captureType === 'capture'
                   ? 'Describe what you see in this snapshot...'
                   : 'Write note details here...'
               }
               placeholderTextColor="#52525b"
               multiline
-              autoFocus
+              autoFocus={captureType !== 'speak'}
             />
 
             <TouchableOpacity
@@ -1093,5 +1296,96 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 14,
     fontWeight: '600'
+  },
+  // Glowing breathing orb styles
+  orbWrapper: {
+    width: 200,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative'
+  },
+  orbOuterGlow: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#8b5cf6', // Indigo glow aura
+    opacity: 0.4,
+    shadowColor: '#8b5cf6',
+    shadowOpacity: 0.8,
+    shadowRadius: 50,
+    elevation: 10
+  },
+  orbSphere: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#06b6d4', // Cyan main sphere
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#06b6d4',
+    shadowOpacity: 0.9,
+    shadowRadius: 30,
+    elevation: 8
+  },
+  orbCore: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    opacity: 0.9,
+    shadowColor: '#ffffff',
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 5
+  },
+  pillButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#18181b',
+    borderWidth: 1,
+    borderColor: '#27272a'
+  },
+  pillText: {
+    color: '#a1a1aa',
+    fontSize: 12,
+    fontWeight: '500'
+  },
+  voiceRecordBar: {
+    width: '100%',
+    height: 52,
+    backgroundColor: '#1c1917',
+    borderWidth: 1,
+    borderColor: '#44403c',
+    borderRadius: 26,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10
+  },
+  voiceRecordDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ef4444'
+  },
+  // Visualizer ripples
+  visualizerWrapper: {
+    width: 220,
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative'
+  },
+  orbPulseRing: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: '#a78bfa',
+    backgroundColor: 'transparent'
   }
 });
