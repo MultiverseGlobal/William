@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Onboarding } from './components/Onboarding';
 import { Dashboard } from './components/Dashboard';
-import type { ConstitutionRule, ContextState, Integration } from '@william/types';
+import type { ConstitutionRule, ContextState, Integration, Portrait, Journey, LibraryItem } from '@william/types';
 
 interface AppState {
   username: string;
-  profile: { name: string; role: string; avatar: string };
+  portrait: Portrait;
+  journeys: Journey[];
+  library: LibraryItem[];
   rules: ConstitutionRule[];
   context: Partial<ContextState>;
   integrations: Integration[];

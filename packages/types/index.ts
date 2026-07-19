@@ -93,3 +93,42 @@ export interface ReasoningResponse {
   confidence: number;
   meta?: Record<string, any>;
 }
+
+export interface Portrait {
+  name: string;
+  identity: string;         // Who you are trying to become
+  values: string;           // Why does that matter & What gives life meaning
+  principles: string;       // Guiding principles
+  strengths: string;        // Strengths you rely on
+  blind_spots: string;      // Fears / struggles / weaknesses / blind spots
+  dreams: string;           // Ambitions / projects / what you are building
+  relationships: string;    // Crucial relationships & circle
+  decision_patterns: string[]; // Decision patterns noticed
+  growth: string[];         // Chronological growth / biography logs
+}
+
+export interface Journey {
+  id: string;
+  category: 'mental' | 'physical' | 'financial' | 'relationships' | 'legacy';
+  icon: string;
+  title: string;
+  currentState: string;
+  vision: string;
+  milestones: string[];
+  memories: string[];
+  lessons: string[];
+  progress: number; // 0-100 percentage
+  timeline: Array<{ date: string; text: string }>;
+}
+
+export interface LibraryItem {
+  id: string;
+  type: 'book' | 'idea' | 'quote' | 'note' | 'lesson';
+  title: string;
+  author?: string;
+  content: string;
+  dateAdded: string;
+  tags: string[];
+}
+
+
