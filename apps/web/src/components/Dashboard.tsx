@@ -439,41 +439,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
     }
   };
 
-  // Sidebar navigation render helper for desktop
-  const renderSidebarLinks = () => {
-    const links = [
-      { id: 'home', label: 'Study Room', icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-      ) },
-      { id: 'portrait', label: 'Living Portrait', icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></svg>
-      ) },
-      { id: 'journeys', label: 'Active Journeys', icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
-      ) },
-      { id: 'library', label: 'Room Library', icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M6 6h10"></path><path d="M6 10h10"></path></svg>
-      ) },
-      { id: 'settings', label: 'Room Settings', icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
-      ) }
-    ] as const;
-
-    return links.map(link => (
-      <button
-        key={link.id}
-        onClick={() => {
-          setActiveTab(link.id);
-          setIsReflecting(false);
-        }}
-        className={`sidebar-link ${activeTab === link.id ? 'active' : ''}`}
-      >
-        {link.icon}
-        <span>{link.label}</span>
-      </button>
-    ));
-  };
-
   // Render simulated control deck
   const renderFloatingSimulationPanel = () => {
     return (
@@ -511,8 +476,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                 padding: '6px 0',
                 borderRadius: '4px',
                 border: '1px solid var(--border-hairline)',
-                background: deviceType === 'desktop' ? 'var(--text-primary)' : 'transparent',
-                color: deviceType === 'desktop' ? 'var(--bg-surface)' : 'var(--text-primary)',
+                background: (deviceType as string) === 'desktop' ? 'var(--text-primary)' : 'transparent',
+                color: (deviceType as string) === 'desktop' ? 'var(--bg-surface)' : 'var(--text-primary)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -530,8 +495,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                 padding: '6px 0',
                 borderRadius: '4px',
                 border: '1px solid var(--border-hairline)',
-                background: deviceType === 'mobile' ? 'var(--text-primary)' : 'transparent',
-                color: deviceType === 'mobile' ? 'var(--bg-surface)' : 'var(--text-primary)',
+                background: (deviceType as string) === 'mobile' ? 'var(--text-primary)' : 'transparent',
+                color: (deviceType as string) === 'mobile' ? 'var(--bg-surface)' : 'var(--text-primary)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -604,6 +569,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   };
 
   if (deviceType === 'desktop') {
+    const williamReplies = desktopChatLogs.filter(l => l.sender === 'william');
+    const lastReplyText = williamReplies.length > 0 
+      ? williamReplies[williamReplies.length - 1].text 
+      : "Walk with me. Speak your mind, or write down what feels heavy.";
+
     return (
       <div className="desktop-workspace-root">
         {/* Reflection Overlay */}
@@ -654,7 +624,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
             height: '600px',
             background: 'var(--glow-color)',
             top: '30%',
-            left: '60%'
+            left: '30%'
           }}
         />
 
@@ -664,603 +634,210 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
           onAction={handlePaletteAction}
         />
 
-        {/* LEFT VERTICAL SIDEBAR NAVIGATION */}
-        <aside className="dashboard-sidebar">
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <div className="sidebar-logo">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M6 6h10"></path><path d="M6 10h10"></path></svg>
-              <span style={{ fontWeight: 600, marginLeft: '2px' }}>William</span>
-            </div>
-
-            <div className="sidebar-links">
-              {renderSidebarLinks()}
-            </div>
+        {/* CINEMATIC HEADER */}
+        <header className="cinematic-header">
+          <div className="cinematic-logo">
+            <div className="cinematic-logo-dot" />
+            <span>William</span>
           </div>
 
-          {/* Sidebar profile footer */}
-          <div className="sidebar-profile">
-            <div className="profile-avatar">
-              {portrait.name ? portrait.name.charAt(0).toUpperCase() : 'U'}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>{portrait.name || 'User'}</span>
-              <div style={{ flexDirection: 'row', alignItems: 'center', display: 'flex', gap: '4px', marginTop: '2px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '3px', backgroundColor: '#10b981' }} />
-                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Companion Room</span>
-              </div>
-            </div>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <button 
+              className="zen-btn-outline" 
+              style={{ padding: '6px 14px', fontSize: '0.75rem', borderRadius: '16px' }}
+              onClick={() => setIsPaletteOpen(true)}
+            >
+              Press ⌘K for Systems
+            </button>
+            <button 
+              className="zen-btn-outline"
+              style={{ width: '32px', height: '32px', padding: 0, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={toggleTheme}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
           </div>
-        </aside>
+        </header>
 
-        {/* MAIN WORKSPACE CANVAS */}
-        <main className="workspace-canvas">
+        {/* CINEMATIC CANVAS */}
+        <main className="cinematic-canvas">
           
-          {/* Header Bar */}
-          <header className="workspace-header">
-            <div>
-              <h2 style={{ fontSize: '1.75rem', fontWeight: 300, color: 'var(--text-primary)', letterSpacing: '-0.02em', textTransform: 'capitalize' }}>
-                {activeTab === 'home' ? 'Study Room' : activeTab === 'portrait' ? 'Living Portrait' : activeTab}
-              </h2>
-              <span className="zen-caption">
-                Simulated {simPeriod === 'day1' ? 'First Day' : simPeriod === 'firstweek' ? 'First Week' : 'Long-Term Walk'} • {simTimeOfDay}
-              </span>
-            </div>
-            
-            {/* Quick Palette Button */}
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {/* Big Breathing Orb Visualizer */}
+          <div className="breathing-assistant-orb-wrapper">
+            <div className="breathing-assistant-orb-outer" />
+            <div className="breathing-assistant-orb-pulse" />
+            <div className="breathing-assistant-orb" />
+          </div>
+
+          {/* Dialogue display in serif typography */}
+          <div className="cinematic-dialogue-box">
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={lastReplyText}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="cinematic-dialogue-text"
+              >
+                "{lastReplyText}"
+              </motion.p>
+            </AnimatePresence>
+          </div>
+
+          {/* Quick reflection activator */}
+          {!isReflecting && (
+            <motion.button 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              whileHover={{ opacity: 1 }}
+              className="zen-btn-outline" 
+              style={{ fontSize: '0.75rem', padding: '6px 16px', borderRadius: '16px', marginTop: '16px' }}
+              onClick={() => setIsReflecting(true)}
+            >
+              ✦ Trigger Strategy Reflection
+            </motion.button>
+          )}
+
+          {/* Evening reflection interactive block */}
+          {isReflecting && (
+            <motion.div
+              initial={{ scale: 0.98, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              style={{ 
+                width: '100%', 
+                maxWidth: '480px',
+                background: 'var(--bg-surface)', 
+                border: '1px solid var(--border-hairline)', 
+                borderRadius: '20px',
+                padding: '24px',
+                marginTop: '16px',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Evening Reflection</span>
+                <button className="zen-btn-outline" style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '12px' }} onClick={() => setIsReflecting(false)}>
+                  Close
+                </button>
+              </div>
+
+              <form onSubmit={handleReflectionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {reflectionStep === 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>What surprised you today?</span>
+                    <input 
+                      type="text" 
+                      className="zen-input" 
+                      value={eveningSurprise} 
+                      onChange={(e) => setEveningSurprise(e.target.value)} 
+                      placeholder="e.g. Atlas architecture compiled on first attempt"
+                      autoFocus 
+                    />
+                    <button type="button" className="zen-btn" style={{ marginTop: '8px' }} onClick={() => setReflectionStep(1)} disabled={!eveningSurprise.trim()}>
+                      Next
+                    </button>
+                  </div>
+                )}
+
+                {reflectionStep === 1 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>What burden felt lighter?</span>
+                    <input 
+                      type="text" 
+                      className="zen-input" 
+                      value={eveningBurden} 
+                      onChange={(e) => setEveningBurden(e.target.value)} 
+                      placeholder="e.g. Delegating deployment steps"
+                      autoFocus 
+                    />
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                      <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(0)}>Back</button>
+                      <button type="button" className="zen-btn" onClick={() => setReflectionStep(2)} disabled={!eveningBurden.trim()}>Next</button>
+                    </div>
+                  </div>
+                )}
+
+                {reflectionStep === 2 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>Did actions resemble the person you're becoming?</span>
+                    <input 
+                      type="text" 
+                      className="zen-input" 
+                      value={eveningAlign} 
+                      onChange={(e) => setEveningAlign(e.target.value)} 
+                      placeholder="e.g. Yes, maintained calm deep-work session"
+                      autoFocus 
+                    />
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                      <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(1)}>Back</button>
+                      <button type="button" className="zen-btn" onClick={() => setReflectionStep(3)} disabled={!eveningAlign.trim()}>Next</button>
+                    </div>
+                  </div>
+                )}
+
+                {reflectionStep === 3 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>What deserves remembering?</span>
+                    <input 
+                      type="text" 
+                      className="zen-input" 
+                      value={eveningRemember} 
+                      onChange={(e) => setEveningRemember(e.target.value)} 
+                      placeholder="e.g. Quality of focus shapes the entire week"
+                      autoFocus 
+                    />
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                      <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(2)}>Back</button>
+                      <button type="submit" className="zen-btn" disabled={!eveningRemember.trim()}>Submit Reflection</button>
+                    </div>
+                  </div>
+                )}
+              </form>
+            </motion.div>
+          )}
+
+          {/* Floating pill prompt bar */}
+          <div className="floating-prompt-bar-wrapper">
+            {/* Quick Suggestions Pills */}
+            <div style={{ flexDirection: 'row', display: 'flex', gap: '8px', opacity: 0.8 }}>
               <button 
                 className="zen-btn-outline" 
-                style={{ padding: '6px 12px', fontSize: '0.75rem', borderRadius: '8px' }}
-                onClick={() => setIsPaletteOpen(true)}
+                style={{ fontSize: '0.6875rem', padding: '4px 12px', borderRadius: '12px' }}
+                onClick={() => setChatInput("Let's reflect on today's focus.")}
               >
-                Press ⌘K for Command Palette
+                📝 Reflect
+              </button>
+              <button 
+                className="zen-btn-outline" 
+                style={{ fontSize: '0.6875rem', padding: '4px 12px', borderRadius: '12px' }}
+                onClick={() => setChatInput("Evolve my portrait beliefs.")}
+              >
+                🔮 Evolve portrait
               </button>
             </div>
-          </header>
 
-          {/* Render Active View Panels */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '32px' }}
-            >
-              {/* Home tab grid layout */}
-              {activeTab === 'home' && (
-                <div className="zen-grid-two-column">
-                  
-                  {/* Left Column: Strategic Dialogue */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                    
-                    {/* Welcome banner */}
-                    {!isReflecting && (
-                      <div className="dashboard-card" style={{ fontFamily: 'serif', lineHeight: 1.8 }}>
-                        <h3 style={{ fontSize: '1.5rem', fontWeight: 300, color: 'var(--text-primary)', marginBottom: '16px' }}>
-                          Good {simTimeOfDay === 'morning' ? 'Morning' : simTimeOfDay === 'afternoon' ? 'Afternoon' : 'Evening'}, {portrait.name || 'Friend'}.
-                        </h3>
-                        
-                        {simPeriod === 'longterm' && (
-                          <p style={{ fontSize: '1.0625rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                            You've grown in patience this month. Your work on {portrait.dreams || 'Atlas'} is beginning to compound. 
-                            You seem mentally exhausted.
-                          </p>
-                        )}
-                        {simPeriod === 'firstweek' && (
-                          <p style={{ fontSize: '1.0625rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                            We are gathering observations. One thoughtful inquiry a day will establish our baseline. 
-                            Do not force productivity; seek to understand constraints.
-                          </p>
-                        )}
-                        {simPeriod === 'day1' && (
-                          <p style={{ fontSize: '1.0625rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                            Welcome to your study. I have been keeping your place, waiting to continue the conversation about your life.
-                          </p>
-                        )}
+            <form onSubmit={handleSendDesktopChat} className="floating-prompt-bar">
+              <input
+                type="text"
+                className="floating-prompt-input"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Ask William anything or reflect on your day..."
+              />
+              <button 
+                type="submit" 
+                className="floating-prompt-send-btn" 
+                disabled={!chatInput.trim()}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              </button>
+            </form>
+          </div>
 
-                        <p style={{ fontSize: '1.0625rem', color: 'var(--text-primary)', marginTop: '24px', fontWeight: 500 }}>
-                          Would you like to reflect, continue yesterday's conversation, or simply talk?
-                        </p>
-
-                        <div style={{ display: 'flex', gap: '12px', marginTop: '28px' }}>
-                          <button className="zen-btn" onClick={() => setIsReflecting(true)}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
-                            Reflect
-                          </button>
-                          <button className="zen-btn-outline" onClick={() => {
-                            const chatSection = document.getElementById('strategic-chat');
-                            chatSection?.scrollIntoView({ behavior: 'smooth' });
-                          }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                            Continue Yesterday's Conversation
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Evening reflection interactive block */}
-                    {isReflecting && (
-                      <motion.div
-                        initial={{ scale: 0.98, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="dashboard-card"
-                        style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Evening Strategy Reflection</span>
-                          <button className="zen-btn-outline" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => setIsReflecting(false)}>
-                            Close
-                          </button>
-                        </div>
-
-                        <form onSubmit={handleReflectionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                          {reflectionStep === 0 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>What surprised you today?</span>
-                              <input 
-                                type="text" 
-                                className="zen-input" 
-                                value={eveningSurprise} 
-                                onChange={(e) => setEveningSurprise(e.target.value)} 
-                                placeholder="e.g. Atlas architecture compiled on first attempt"
-                                autoFocus 
-                              />
-                              <button type="button" className="zen-btn" style={{ marginTop: '12px' }} onClick={() => setReflectionStep(1)} disabled={!eveningSurprise.trim()}>
-                                Next Question
-                              </button>
-                            </div>
-                          )}
-
-                          {reflectionStep === 1 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>What burden felt lighter?</span>
-                              <input 
-                                type="text" 
-                                className="zen-input" 
-                                value={eveningBurden} 
-                                onChange={(e) => setEveningBurden(e.target.value)} 
-                                placeholder="e.g. Delegating deployment steps"
-                                autoFocus 
-                              />
-                              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                                <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(0)}>Back</button>
-                                <button type="button" className="zen-btn" onClick={() => setReflectionStep(2)} disabled={!eveningBurden.trim()}>Next Question</button>
-                              </div>
-                            </div>
-                          )}
-
-                          {reflectionStep === 2 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>Did your actions resemble the person you're becoming?</span>
-                              <input 
-                                type="text" 
-                                className="zen-input" 
-                                value={eveningAlign} 
-                                onChange={(e) => setEveningAlign(e.target.value)} 
-                                placeholder="e.g. Yes, maintained calm deep-work session"
-                                autoFocus 
-                              />
-                              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                                <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(1)}>Back</button>
-                                <button type="button" className="zen-btn" onClick={() => setReflectionStep(3)} disabled={!eveningAlign.trim()}>Next Question</button>
-                              </div>
-                            </div>
-                          )}
-
-                          {reflectionStep === 3 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>What deserves remembering?</span>
-                              <input 
-                                type="text" 
-                                className="zen-input" 
-                                value={eveningRemember} 
-                                onChange={(e) => setEveningRemember(e.target.value)} 
-                                placeholder="e.g. Quality of focus shapes the entire week"
-                                autoFocus 
-                              />
-                              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                                <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(2)}>Back</button>
-                                <button type="submit" className="zen-btn" disabled={!eveningRemember.trim()}>Submit Reflection</button>
-                              </div>
-                            </div>
-                          )}
-                        </form>
-                      </motion.div>
-                    )}
-
-                    {/* Chat dialog interface */}
-                    <div id="strategic-chat" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span className="zen-caption">Strategic Dialogue</span>
-                        <h4 style={{ fontSize: '1.25rem', fontWeight: 400 }}>Conversations</h4>
-                      </div>
-
-                      <div className="dashboard-card" style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '420px', overflow: 'hidden' }}>
-                        {/* Log feed */}
-                        <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                          {desktopChatLogs.map((msg) => {
-                            const isWilliam = msg.sender === 'william';
-                            return (
-                              <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isWilliam ? 'flex-start' : 'flex-end' }}>
-                                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                                  {isWilliam ? 'William' : 'You'} • {msg.time}
-                                </span>
-                                <div 
-                                  style={{ 
-                                    color: 'var(--text-primary)', 
-                                    maxWidth: '80%',
-                                    lineHeight: 1.5,
-                                    background: isWilliam ? 'var(--focus-glow)' : 'transparent',
-                                    padding: isWilliam ? '12px 16px' : '0',
-                                    borderRadius: '8px',
-                                    fontFamily: isWilliam ? 'var(--font-sans)' : 'var(--font-cursive)',
-                                    fontSize: isWilliam ? '0.9375rem' : '1.25rem'
-                                  }}
-                                >
-                                  {msg.text}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Textbox input */}
-                        <form onSubmit={handleSendDesktopChat} style={{ borderTop: '1px solid var(--border-hairline)', padding: '16px 20px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                          <input
-                            type="text"
-                            className="zen-input"
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            placeholder="Simply talk, explore systems, or log advice..."
-                            style={{ border: 'none', borderBottom: 'none', flex: 1 }}
-                          />
-                          <button className="zen-btn" type="submit" disabled={!chatInput.trim()}>
-                            Send
-                          </button>
-                        </form>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Right Column: Goal Constellation & Chronicle */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                    
-                    {/* Goal Constellation Section */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span className="zen-caption">Theory-of-Mind Mapping</span>
-                        <h4 style={{ fontSize: '1.25rem', fontWeight: 400 }}>Goal Constellation</h4>
-                      </div>
-                      <div className="dashboard-card">
-                        <GoalConstellation 
-                          goals={
-                            portrait.dreams 
-                              ? portrait.dreams.split(',').map(g => g.trim()) 
-                              : ['Build high-growth engine', 'Establish clear workflow', 'Connect systems']
-                          } 
-                        />
-                      </div>
-                    </div>
-
-                    {/* Timeline Chronicle Feed */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span className="zen-caption">Systemic Timeline</span>
-                        <h4 style={{ fontSize: '1.25rem', fontWeight: 400 }}>Chronicle Feed</h4>
-                      </div>
-                      <div className="dashboard-card" style={{ padding: '24px', maxHeight: '300px', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                          {historyLogs.slice(0, 10).map((logItem) => (
-                            <div key={logItem.id} style={{ display: 'flex', gap: '16px', fontSize: '0.875rem', borderLeft: '2px solid var(--border-hairline)', paddingLeft: '12px', color: 'var(--text-secondary)' }}>
-                              <span style={{ color: 'var(--text-muted)', width: '70px', flexShrink: 0 }}>{logItem.time}</span>
-                              <span>{logItem.text}</span>
-                            </div>
-                          ))}
-                          {historyLogs.length === 0 && (
-                            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No logs recorded in the chronicle today.</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-
-                </div>
-              )}
-
-              {/* Tab: Portrait Biography */}
-              {activeTab === 'portrait' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span className="zen-caption">A biography writing itself</span>
-                    <h4 style={{ fontSize: '1.25rem', fontWeight: 400 }}>The Living Portrait</h4>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-                    
-                    {/* Identity Card */}
-                    <div className="dashboard-card" style={{ border: highlightedCategory === 'identity' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
-                      <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Identity</span>
-                      <h4 style={{ fontSize: '1.25rem', fontWeight: 300, marginTop: '8px', fontFamily: 'var(--font-cursive)' }}>
-                        "{portrait.identity}"
-                      </h4>
-                    </div>
-
-                    {/* Values Card */}
-                    <div className="dashboard-card" style={{ border: highlightedCategory === 'values' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
-                      <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Values</span>
-                      <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                        {portrait.values}
-                      </p>
-                    </div>
-
-                    {/* Principles Card */}
-                    <div className="dashboard-card" style={{ border: highlightedCategory === 'principles' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
-                      <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Principles</span>
-                      <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px', fontStyle: 'italic' }}>
-                        "{portrait.principles}"
-                      </p>
-                    </div>
-
-                    {/* Strengths Card */}
-                    <div className="dashboard-card" style={{ border: highlightedCategory === 'strengths' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
-                      <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Strengths</span>
-                      <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                        {portrait.strengths}
-                      </p>
-                    </div>
-
-                    {/* Blind Spots Card */}
-                    <div className="dashboard-card" style={{ border: highlightedCategory === 'blind_spots' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
-                      <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Blind Spots & Fears</span>
-                      <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                        {portrait.blind_spots}
-                      </p>
-                    </div>
-
-                    {/* Relationships Card */}
-                    <div className="dashboard-card" style={{ border: highlightedCategory === 'relationships' ? '1px solid var(--accent-color)' : '1px solid var(--border-hairline)' }}>
-                      <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Companion Circle</span>
-                      <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                        {portrait.relationships}
-                      </p>
-                    </div>
-
-                    {/* Cognitive Profile Card */}
-                    <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
-                      <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Cognitive Style Analysis</span>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginTop: '16px' }}>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Problem Solving Style</span>
-                          <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginTop: '4px' }}>{portrait.cognitiveProfile?.problemSolvingStyle}</p>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Temporal Bias</span>
-                          <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginTop: '4px' }}>{portrait.cognitiveProfile?.temporalBias}</p>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Attention Span Profile</span>
-                          <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginTop: '4px' }}>{portrait.cognitiveProfile?.attentionSpan}</p>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Decision Heuristics</span>
-                          <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginTop: '4px' }}>{portrait.cognitiveProfile?.decisionHeuristics}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Active Beliefs Card */}
-                    <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
-                      <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Active Beliefs</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                        {portrait.activeBeliefs?.map((item) => (
-                          <div key={item.belief} style={{ borderLeft: '2px solid var(--border-hairline)', paddingLeft: '16px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.9375rem', color: 'var(--text-primary)', fontWeight: 500 }}>
-                                {item.belief}
-                              </span>
-                              <span style={{ fontSize: '0.6875rem', background: 'var(--focus-glow)', border: '1px solid var(--border-hairline)', padding: '2px 8px', borderRadius: '12px' }}>
-                                Strength: {Math.round(item.strength * 100)}%
-                              </span>
-                            </div>
-                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                              Evolution: {item.evolution} (last verified: {item.lastTested})
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              )}
-
-              {/* Tab: Journeys */}
-              {activeTab === 'journeys' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span className="zen-caption">Compounding trajectories</span>
-                    <h4 style={{ fontSize: '1.25rem', fontWeight: 400 }}>Active Journeys</h4>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {journeys.map((journey) => (
-                      <div key={journey.id} className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span style={{ fontSize: '1.75rem' }}>{journey.icon}</span>
-                            <div>
-                              <h4 style={{ fontSize: '1.125rem', fontWeight: 500 }}>{journey.title}</h4>
-                              <span className="zen-caption">{journey.currentState}</span>
-                            </div>
-                          </div>
-                          <span style={{ fontSize: '1.5rem', fontWeight: 200, color: 'var(--text-secondary)' }}>
-                            {journey.progress}%
-                          </span>
-                        </div>
-
-                        <div>
-                          <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Milestones Checklist</span>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
-                            {journey.milestones.map((m) => (
-                              <div 
-                                key={m.id} 
-                                style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem', opacity: m.completed ? 0.5 : 1 }}
-                              >
-                                <div style={{ width: '16px', height: '16px', border: '1px solid var(--border-hairline)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', background: m.completed ? 'var(--text-primary)' : 'transparent', color: 'var(--bg-surface)' }}>
-                                  {m.completed && '✓'}
-                                </div>
-                                <span style={{ textDecoration: m.completed ? 'line-through' : 'none', color: 'var(--text-primary)' }}>{m.text}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {journey.timeline && journey.timeline.length > 0 && (
-                          <div>
-                            <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Milestone History</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
-                              {journey.timeline.map((t, idx) => (
-                                <div key={idx} style={{ display: 'flex', gap: '12px', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                                  <span style={{ color: 'var(--text-muted)', width: '60px' }}>{t.date}</span>
-                                  <span>{t.text}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Tab: Library */}
-              {activeTab === 'library' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span className="zen-caption">A collection of patterns</span>
-                    <h4 style={{ fontSize: '1.25rem', fontWeight: 400 }}>Room Library</h4>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-                    {library.map((item) => (
-                      <div 
-                        key={item.id} 
-                        onClick={() => setSelectedLibraryItem(item)}
-                        className="dashboard-card"
-                        style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'space-between' }}
-                      >
-                        <div>
-                          <span className="zen-caption" style={{ textTransform: 'uppercase' }}>{item.type}</span>
-                          <h4 style={{ fontSize: '1.125rem', fontWeight: 500, marginTop: '4px' }}>{item.title}</h4>
-                          {item.author && <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>By {item.author}</span>}
-                        </div>
-                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          "{item.content}"
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Detail Overlay Modal */}
-                  {selectedLibraryItem && (
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
-                      <div className="dashboard-card" style={{ width: '90%', maxWidth: '480px', padding: '32px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignSelf: 'stretch', marginBottom: '16px' }}>
-                          <span className="zen-caption" style={{ textTransform: 'uppercase' }}>{selectedLibraryItem.type}</span>
-                          <button className="zen-btn-outline" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => setSelectedLibraryItem(null)}>
-                            Close
-                          </button>
-                        </div>
-                        <h3 style={{ fontSize: '1.375rem', fontWeight: 400, marginBottom: '4px' }}>{selectedLibraryItem.title}</h3>
-                        {selectedLibraryItem.author && <h5 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>By {selectedLibraryItem.author}</h5>}
-                        <p style={{ fontSize: '1rem', color: 'var(--text-primary)', fontStyle: 'italic', lineHeight: 1.6, padding: '16px 0', borderTop: '1px solid var(--border-hairline)', borderBottom: '1px solid var(--border-hairline)', marginBottom: '16px' }}>
-                          "{selectedLibraryItem.content}"
-                        </p>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          {selectedLibraryItem.tags.map(t => (
-                            <span key={t} style={{ fontSize: '0.6875rem', background: 'var(--focus-glow)', border: '1px solid var(--border-hairline)', padding: '2px 8px', borderRadius: '12px' }}>
-                              #{t}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Tab: Settings */}
-              {activeTab === 'settings' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span className="zen-caption">Configurations</span>
-                    <h4 style={{ fontSize: '1.25rem', fontWeight: 400 }}>Room Settings</h4>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    
-                    {/* Theme selector */}
-                    <div className="dashboard-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: '0.9375rem', fontWeight: 500 }}>Theme Mode</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Toggle between light (warm stone) and dark (deep carbon) aesthetics.</div>
-                      </div>
-                      <label className="ios-switch" style={{ width: '42px', height: '24px' }}>
-                        <input type="checkbox" checked={theme === 'dark'} onChange={toggleTheme} />
-                        <span className="ios-slider-toggle" style={{ borderRadius: '24px' }}></span>
-                      </label>
-                    </div>
-
-                    {/* Observer Sync */}
-                    <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div>
-                        <div style={{ fontSize: '0.9375rem', fontWeight: 500 }}>Observer Sync (Integrations)</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Simulate fetching commits or notes to update Portrait.</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                        <button className="zen-btn-outline" style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => triggerObserverSync('github')}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg>
-                          Sync GitHub Commits
-                        </button>
-                        <button className="zen-btn-outline" style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => triggerObserverSync('notion')}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                          Sync Notion Pages
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Reflection Engine */}
-                    <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div>
-                        <div style={{ fontSize: '0.9375rem', fontWeight: 500 }}>Reflection Engine (Nightly Cycle)</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Simulate William's nightly self-reflection. William will analyze today's logs and synthesize new understandings to evolve your Portrait.</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                        <button 
-                          className="zen-btn" 
-                          style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
-                          onClick={triggerReflectionCycle}
-                          disabled={isReflectionLoading}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                          {isReflectionLoading ? 'Thinking...' : 'Execute Reflection Cycle'}
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
         </main>
 
-        {/* Floating simulation panel */}
+        {/* Floating simulation control deck */}
         {renderFloatingSimulationPanel()}
       </div>
     );
