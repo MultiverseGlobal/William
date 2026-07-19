@@ -76,6 +76,11 @@ body {
   flex-direction: column;
   gap: 32px;
   z-index: 10;
+  transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.zen-content.desktop-wide {
+  max-width: 1120px;
 }
 
 /* Breathing Ambient Glow Backdrop */
@@ -259,6 +264,11 @@ body {
   border-bottom: 1px solid var(--border-hairline);
   padding-bottom: 16px;
   margin-bottom: 24px;
+  transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.zen-nav.desktop-wide {
+  max-width: 1120px;
 }
 
 .zen-nav-logo {
@@ -470,4 +480,19 @@ body {
   font-size: 3.5rem;
   font-weight: 400;
   color: var(--text-primary);
+}
+
+/* Two-column layout grid for desktop study view */
+.zen-grid-two-column {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  width: 100%;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .zen-grid-two-column {
+    grid-template-columns: 1.5fr 1fr;
+  }
 }

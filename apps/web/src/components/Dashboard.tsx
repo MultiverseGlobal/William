@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { ConstitutionRule, ContextState, Integration, Portrait, Journey, LibraryItem } from '@william/types';
 import { CommandPalette } from './CommandPalette';
+import { GoalConstellation } from './GoalConstellation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface DashboardProps {
@@ -460,8 +461,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
               fontFamily: 'Georgia, serif'
             }}
           >
-            <div style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: '3rem' }}>🌙</span>
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-secondary)' }}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
               <div style={{ marginTop: '16px' }}>
                 <span className="zen-caption" style={{ textTransform: 'uppercase', letterSpacing: '0.15em' }}>Presence</span>
                 <h3 style={{ fontSize: '1.5rem', fontWeight: 300, color: 'var(--text-primary)', marginTop: '8px' }}>Nightly Self-Reflection</h3>
@@ -498,9 +499,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
       />
 
       {/* TOP DESKTOP HEADER BAR (ONLY IF NOT SIMULATING NATIVE FULLSCREEN MOBILE) */}
-      <nav className="zen-nav">
+      <nav className={`zen-nav ${deviceType === 'desktop' ? 'desktop-wide' : ''}`}>
         <span className="zen-nav-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>📚</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M6 6h10"></path><path d="M6 10h10"></path></svg>
           <span style={{ fontWeight: 400, opacity: 0.6 }}>William /</span>
           <span style={{ fontWeight: 600 }}>{portrait.name || initialData.username}</span>
         </span>
@@ -525,7 +526,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
       </nav>
 
       {/* RENDER DUAL LAYOUT: DESKTOP OR MOBILE FRAME */}
-      <div className="zen-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+      <div className={`zen-content ${deviceType === 'desktop' ? 'desktop-wide' : ''}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
         <AnimatePresence mode="wait">
           
           {/* ==================== 1. DESKTOP VIEW ==================== */}
@@ -540,218 +541,272 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
               
               {/* Tab: Study (Home) */}
               {activeTab === 'home' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+                <div className="zen-grid-two-column">
                   
-                  {/* Literary Room Welcome */}
-                  {!isReflecting && (
-                    <div 
-                      style={{ 
-                        padding: '40px', 
-                        border: '1px solid var(--border-hairline)', 
-                        borderRadius: '16px', 
-                        background: 'var(--bg-surface)',
-                        boxShadow: 'var(--shadow-subtle)',
-                        lineHeight: 1.8,
-                        fontFamily: 'serif'
-                      }}
-                    >
-                      <h3 style={{ fontSize: '1.625rem', fontWeight: 300, color: 'var(--text-primary)', marginBottom: '20px' }}>
-                        Good {simTimeOfDay === 'morning' ? 'Morning' : simTimeOfDay === 'afternoon' ? 'Afternoon' : 'Evening'}, {portrait.name || 'Friend'}.
-                      </h3>
-                      
-                      {simPeriod === 'longterm' && (
-                        <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                          You've grown in patience this month. Your work on {portrait.dreams || 'Atlas'} is beginning to compound. 
-                          You seem mentally exhausted.
-                        </p>
-                      )}
-                      {simPeriod === 'firstweek' && (
-                        <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                          We are gathering observations. One thoughtful inquiry a day will establish our baseline. 
-                          Do not force productivity; seek to understand constraints.
-                        </p>
-                      )}
-                      {simPeriod === 'day1' && (
-                        <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                          Welcome to your study. I have been keeping your place, waiting to continue the conversation about your life.
-                        </p>
-                      )}
+                  {/* Left Column: Welcome & Chat */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', width: '100%' }}>
+                    {/* Literary Room Welcome */}
+                    {!isReflecting && (
+                      <div 
+                        style={{ 
+                          padding: '40px', 
+                          border: '1px solid var(--border-hairline)', 
+                          borderRadius: '16px', 
+                          background: 'var(--bg-surface)',
+                          boxShadow: 'var(--shadow-subtle)',
+                          lineHeight: 1.8,
+                          fontFamily: 'serif'
+                        }}
+                      >
+                        <h3 style={{ fontSize: '1.625rem', fontWeight: 300, color: 'var(--text-primary)', marginBottom: '20px' }}>
+                          Good {simTimeOfDay === 'morning' ? 'Morning' : simTimeOfDay === 'afternoon' ? 'Afternoon' : 'Evening'}, {portrait.name || 'Friend'}.
+                        </h3>
+                        
+                        {simPeriod === 'longterm' && (
+                          <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                            You've grown in patience this month. Your work on {portrait.dreams || 'Atlas'} is beginning to compound. 
+                            You seem mentally exhausted.
+                          </p>
+                        )}
+                        {simPeriod === 'firstweek' && (
+                          <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                            We are gathering observations. One thoughtful inquiry a day will establish our baseline. 
+                            Do not force productivity; seek to understand constraints.
+                          </p>
+                        )}
+                        {simPeriod === 'day1' && (
+                          <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                            Welcome to your study. I have been keeping your place, waiting to continue the conversation about your life.
+                          </p>
+                        )}
 
-                      <p style={{ fontSize: '1.125rem', color: 'var(--text-primary)', marginTop: '24px', fontWeight: 500 }}>
-                        Would you like to reflect, continue yesterday's conversation, or simply talk?
-                      </p>
+                        <p style={{ fontSize: '1.125rem', color: 'var(--text-primary)', marginTop: '24px', fontWeight: 500 }}>
+                          Would you like to reflect, continue yesterday's conversation, or simply talk?
+                        </p>
 
-                      <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-                        <button className="zen-btn" onClick={() => setIsReflecting(true)}>
-                          🧠 Reflect
-                        </button>
-                        <button className="zen-btn-outline" onClick={() => {
-                          const chatSection = document.getElementById('strategic-chat');
-                          chatSection?.scrollIntoView({ behavior: 'smooth' });
-                        }}>
-                          💬 Continue Yesterday's Conversation
-                        </button>
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+                          <button className="zen-btn" onClick={() => setIsReflecting(true)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+                            Reflect
+                          </button>
+                          <button className="zen-btn-outline" onClick={() => {
+                            const chatSection = document.getElementById('strategic-chat');
+                            chatSection?.scrollIntoView({ behavior: 'smooth' });
+                          }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            Continue Yesterday's Conversation
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Evening reflection interactive block */}
-                  {isReflecting && (
-                    <motion.div
-                      initial={{ scale: 0.98, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      style={{ 
-                        padding: '32px', 
-                        border: '1px solid var(--border-hairline)', 
-                        borderRadius: '16px', 
-                        background: 'var(--bg-surface)', 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        gap: '24px' 
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Evening Strategy Reflection</span>
-                        <button className="zen-btn-outline" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => setIsReflecting(false)}>
-                          Close
-                        </button>
-                      </div>
+                    {/* Evening reflection interactive block */}
+                    {isReflecting && (
+                      <motion.div
+                        initial={{ scale: 0.98, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        style={{ 
+                          padding: '32px', 
+                          border: '1px solid var(--border-hairline)', 
+                          borderRadius: '16px', 
+                          background: 'var(--bg-surface)', 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: '24px' 
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Evening Strategy Reflection</span>
+                          <button className="zen-btn-outline" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => setIsReflecting(false)}>
+                            Close
+                          </button>
+                        </div>
 
-                      <form onSubmit={handleReflectionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        {reflectionStep === 0 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>What surprised you today?</span>
-                            <input 
-                              type="text" 
-                              className="zen-input" 
-                              value={eveningSurprise} 
-                              onChange={(e) => setEveningSurprise(e.target.value)} 
-                              placeholder="e.g. Atlas architecture compiled on first attempt"
-                              autoFocus 
-                            />
-                            <button type="button" className="zen-btn" style={{ marginTop: '12px' }} onClick={() => setReflectionStep(1)} disabled={!eveningSurprise.trim()}>
-                              Next Question
-                            </button>
-                          </div>
-                        )}
-
-                        {reflectionStep === 1 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>What burden felt lighter?</span>
-                            <input 
-                              type="text" 
-                              className="zen-input" 
-                              value={eveningBurden} 
-                              onChange={(e) => setEveningBurden(e.target.value)} 
-                              placeholder="e.g. Delegating deployment steps"
-                              autoFocus 
-                            />
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                              <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(0)}>Back</button>
-                              <button type="button" className="zen-btn" onClick={() => setReflectionStep(2)} disabled={!eveningBurden.trim()}>Next Question</button>
+                        <form onSubmit={handleReflectionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                          {reflectionStep === 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>What surprised you today?</span>
+                              <input 
+                                type="text" 
+                                className="zen-input" 
+                                value={eveningSurprise} 
+                                onChange={(e) => setEveningSurprise(e.target.value)} 
+                                placeholder="e.g. Atlas architecture compiled on first attempt"
+                                autoFocus 
+                              />
+                              <button type="button" className="zen-btn" style={{ marginTop: '12px' }} onClick={() => setReflectionStep(1)} disabled={!eveningSurprise.trim()}>
+                                Next Question
+                              </button>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {reflectionStep === 2 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>Did your actions resemble the person you're becoming?</span>
-                            <input 
-                              type="text" 
-                              className="zen-input" 
-                              value={eveningAlign} 
-                              onChange={(e) => setEveningAlign(e.target.value)} 
-                              placeholder="e.g. Yes, maintained calm deep-work session"
-                              autoFocus 
-                            />
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                              <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(1)}>Back</button>
-                              <button type="button" className="zen-btn" onClick={() => setReflectionStep(3)} disabled={!eveningAlign.trim()}>Next Question</button>
-                            </div>
-                          </div>
-                        )}
-
-                        {reflectionStep === 3 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>What deserves remembering?</span>
-                            <input 
-                              type="text" 
-                              className="zen-input" 
-                              value={eveningRemember} 
-                              onChange={(e) => setEveningRemember(e.target.value)} 
-                              placeholder="e.g. Quality of focus shapes the entire week"
-                              autoFocus 
-                            />
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                              <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(2)}>Back</button>
-                              <button type="submit" className="zen-btn" disabled={!eveningRemember.trim()}>Submit Reflection</button>
-                            </div>
-                          </div>
-                        )}
-                      </form>
-                    </motion.div>
-                  )}
-
-                  {/* Strategic Chat Interface (the Heart of William) */}
-                  <div id="strategic-chat" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span className="zen-caption">Strategic Dialogue</span>
-                      <h4 style={{ fontSize: '1.25rem', fontWeight: 400 }}>Conversations</h4>
-                    </div>
-
-                    <div 
-                      style={{ 
-                        border: '1px solid var(--border-hairline)', 
-                        borderRadius: '12px', 
-                        background: 'var(--bg-surface)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: '420px',
-                        overflow: 'hidden'
-                      }}
-                    >
-                      {/* Log feed */}
-                      <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        {desktopChatLogs.map((msg) => {
-                          const isWilliam = msg.sender === 'william';
-                          return (
-                            <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isWilliam ? 'flex-start' : 'flex-end' }}>
-                              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                                {isWilliam ? 'William' : 'You'} • {msg.time}
-                              </span>
-                              <div 
-                                style={{ 
-                                  color: 'var(--text-primary)', 
-                                  maxWidth: '80%',
-                                  lineHeight: 1.5,
-                                  background: isWilliam ? 'var(--focus-glow)' : 'transparent',
-                                  padding: isWilliam ? '12px 16px' : '0',
-                                  borderRadius: '8px',
-                                  fontFamily: isWilliam ? 'var(--font-sans)' : 'var(--font-cursive)',
-                                  fontSize: isWilliam ? '0.9375rem' : '1.25rem'
-                                }}
-                              >
-                                {msg.text}
+                          {reflectionStep === 1 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>What burden felt lighter?</span>
+                              <input 
+                                type="text" 
+                                className="zen-input" 
+                                value={eveningBurden} 
+                                onChange={(e) => setEveningBurden(e.target.value)} 
+                                placeholder="e.g. Delegating deployment steps"
+                                autoFocus 
+                              />
+                              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                                <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(0)}>Back</button>
+                                <button type="button" className="zen-btn" onClick={() => setReflectionStep(2)} disabled={!eveningBurden.trim()}>Next Question</button>
                               </div>
                             </div>
-                          );
-                        })}
+                          )}
+
+                          {reflectionStep === 2 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>Did your actions resemble the person you're becoming?</span>
+                              <input 
+                                type="text" 
+                                className="zen-input" 
+                                value={eveningAlign} 
+                                onChange={(e) => setEveningAlign(e.target.value)} 
+                                placeholder="e.g. Yes, maintained calm deep-work session"
+                                autoFocus 
+                              />
+                              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                                <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(1)}>Back</button>
+                                <button type="button" className="zen-btn" onClick={() => setReflectionStep(3)} disabled={!eveningAlign.trim()}>Next Question</button>
+                              </div>
+                            </div>
+                          )}
+
+                          {reflectionStep === 3 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <span style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>What deserves remembering?</span>
+                              <input 
+                                type="text" 
+                                className="zen-input" 
+                                value={eveningRemember} 
+                                onChange={(e) => setEveningRemember(e.target.value)} 
+                                placeholder="e.g. Quality of focus shapes the entire week"
+                                autoFocus 
+                              />
+                              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                                <button type="button" className="zen-btn-outline" onClick={() => setReflectionStep(2)}>Back</button>
+                                <button type="submit" className="zen-btn" disabled={!eveningRemember.trim()}>Submit Reflection</button>
+                              </div>
+                            </div>
+                          )}
+                        </form>
+                      </motion.div>
+                    )}
+
+                    {/* Strategic Chat Interface (the Heart of William) */}
+                    <div id="strategic-chat" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span className="zen-caption">Strategic Dialogue</span>
+                        <h4 style={{ fontSize: '1.25rem', fontWeight: 400 }}>Conversations</h4>
                       </div>
 
-                      {/* Textbox input */}
-                      <form onSubmit={handleSendDesktopChat} style={{ borderTop: '1px solid var(--border-hairline)', padding: '16px 20px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <input
-                          type="text"
-                          className="zen-input"
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          placeholder="Simply talk, explore systems, or log advice..."
-                          style={{ border: 'none', borderBottom: 'none', flex: 1 }}
-                        />
-                        <button className="zen-btn" type="submit" disabled={!chatInput.trim()}>
-                          Send
-                        </button>
-                      </form>
+                      <div 
+                        style={{ 
+                          border: '1px solid var(--border-hairline)', 
+                          borderRadius: '12px', 
+                          background: 'var(--bg-surface)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          height: '420px',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {/* Log feed */}
+                        <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                          {desktopChatLogs.map((msg) => {
+                            const isWilliam = msg.sender === 'william';
+                            return (
+                              <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isWilliam ? 'flex-start' : 'flex-end' }}>
+                                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                                  {isWilliam ? 'William' : 'You'} • {msg.time}
+                                </span>
+                                <div 
+                                  style={{ 
+                                    color: 'var(--text-primary)', 
+                                    maxWidth: '80%',
+                                    lineHeight: 1.5,
+                                    background: isWilliam ? 'var(--focus-glow)' : 'transparent',
+                                    padding: isWilliam ? '12px 16px' : '0',
+                                    borderRadius: '8px',
+                                    fontFamily: isWilliam ? 'var(--font-sans)' : 'var(--font-cursive)',
+                                    fontSize: isWilliam ? '0.9375rem' : '1.25rem'
+                                  }}
+                                >
+                                  {msg.text}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Textbox input */}
+                        <form onSubmit={handleSendDesktopChat} style={{ borderTop: '1px solid var(--border-hairline)', padding: '16px 20px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            className="zen-input"
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            placeholder="Simply talk, explore systems, or log advice..."
+                            style={{ border: 'none', borderBottom: 'none', flex: 1 }}
+                          />
+                          <button className="zen-btn" type="submit" disabled={!chatInput.trim()}>
+                            Send
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Goal Constellation & Chronicle */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', width: '100%' }}>
+                    
+                    {/* Goal Constellation Section */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span className="zen-caption">Theory-of-Mind Mapping</span>
+                        <h4 style={{ fontSize: '1.25rem', fontWeight: 400 }}>Goal Constellation</h4>
+                      </div>
+                      <GoalConstellation 
+                        goals={
+                          portrait.dreams 
+                            ? portrait.dreams.split(',').map(g => g.trim()) 
+                            : ['Build high-growth engine', 'Establish clear workflow', 'Connect systems']
+                        } 
+                      />
+                    </div>
+
+                    {/* Timeline Chronicle Feed */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span className="zen-caption">Systemic Timeline</span>
+                        <h4 style={{ fontSize: '1.25rem', fontWeight: 400 }}>Chronicle Feed</h4>
+                      </div>
+                      <div 
+                        style={{ 
+                          padding: '24px', 
+                          background: 'var(--bg-surface)', 
+                          border: '1px solid var(--border-hairline)', 
+                          borderRadius: '12px',
+                          maxHeight: '300px',
+                          overflowY: 'auto'
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          {historyLogs.slice(0, 10).map((logItem) => (
+                            <div key={logItem.id} style={{ display: 'flex', gap: '16px', fontSize: '0.875rem', borderLeft: '2px solid var(--border-hairline)', paddingLeft: '12px', color: 'var(--text-secondary)' }}>
+                              <span style={{ color: 'var(--text-muted)', width: '70px', flexShrink: 0 }}>{logItem.time}</span>
+                              <span>{logItem.text}</span>
+                            </div>
+                          ))}
+                          {historyLogs.length === 0 && (
+                            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No logs recorded in the chronicle today.</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -1145,11 +1200,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Simulate fetching commits or notes to update Portrait.</div>
                       </div>
                       <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                        <button className="zen-btn-outline" style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem' }} onClick={() => triggerObserverSync('github')}>
-                          🐙 Sync GitHub Commits
+                        <button className="zen-btn-outline" style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => triggerObserverSync('github')}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg>
+                          Sync GitHub Commits
                         </button>
-                        <button className="zen-btn-outline" style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem' }} onClick={() => triggerObserverSync('notion')}>
-                          📓 Sync Notion Pages
+                        <button className="zen-btn-outline" style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => triggerObserverSync('notion')}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                          Sync Notion Pages
                         </button>
                       </div>
                     </div>
@@ -1163,11 +1220,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                       <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
                         <button 
                           className="zen-btn" 
-                          style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem' }} 
+                          style={{ flex: 1, padding: '8px 16px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
                           onClick={triggerReflectionCycle}
                           disabled={isReflectionLoading}
                         >
-                          {isReflectionLoading ? 'Thinking...' : '⚡ Execute Reflection Cycle'}
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                          {isReflectionLoading ? 'Thinking...' : 'Execute Reflection Cycle'}
                         </button>
                       </div>
                     </div>
@@ -1496,10 +1554,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                 border: '1px solid var(--border-hairline)',
                 background: deviceType === 'desktop' ? 'var(--text-primary)' : 'transparent',
                 color: deviceType === 'desktop' ? 'var(--bg-surface)' : 'var(--text-primary)',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              🖥️ Desktop Study
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+              Desktop Study
             </button>
             <button
               onClick={() => setDeviceType('mobile')}
@@ -1511,10 +1573,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                 border: '1px solid var(--border-hairline)',
                 background: deviceType === 'mobile' ? 'var(--text-primary)' : 'transparent',
                 color: deviceType === 'mobile' ? 'var(--bg-surface)' : 'var(--text-primary)',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              📱 Mobile Walk
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+              Mobile Walk
             </button>
           </div>
         </div>
