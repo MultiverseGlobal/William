@@ -517,11 +517,11 @@ body {
 
 .cinematic-header {
   width: 100%;
-  max-width: 1100px;
+  max-width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 32px 40px;
+  padding: 16px 48px;
   z-index: 10;
 }
 
@@ -552,18 +552,21 @@ body {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  padding: 24px 24px 100px 24px;
+  padding: 12px 24px 100px 24px;
   z-index: 5;
   position: relative;
   text-align: center;
   overflow-y: auto;
 }
 
-/* In home mode the page never scrolls — orb fills available space */
+/* In home mode the page never scrolls — spaces out elements vertically */
 .cinematic-canvas.home-mode {
+  height: calc(100vh - 80px);
   overflow: hidden;
   padding-bottom: 0;
-  justify-content: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 /* Big breathing orb visualizer */
@@ -799,12 +802,12 @@ body {
 
 .cinematic-dialogue-text {
   font-family: var(--font-serif);
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   font-style: italic;
+  font-weight: 500;
   line-height: 1.5;
-  color: var(--text-primary);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  max-width: 560px;
+  color: var(--text-primary) !important;
+  max-width: 580px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

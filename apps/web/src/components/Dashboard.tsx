@@ -230,6 +230,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
     loadData();
   }, []);
 
+  // Sync theme to document element
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+
   // Conversational logs
   const [desktopChatLogs, setDesktopChatLogs] = useState<ChatMessage[]>([]);
   const [mobileChatLogs, setMobileChatLogs] = useState<ChatMessage[]>([]);
