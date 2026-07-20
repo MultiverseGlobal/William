@@ -300,7 +300,6 @@ export const CognitiveMap: React.FC<CognitiveMapProps> = ({
             const size = baseSize + (node.confidence * 8);
 
             // Color scheme based on type
-            let color = 'rgba(255, 255, 255, 0.05)';
             let stroke = 'rgba(255, 255, 255, 0.4)';
             if (node.type === 'project') {
               stroke = 'var(--color-teal)';
