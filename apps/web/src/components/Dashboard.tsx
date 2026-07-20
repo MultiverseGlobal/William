@@ -58,6 +58,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [showSimPanel, setShowSimPanel] = useState(false);
 
   // Real-time insights
   const [activeInsights, setActiveInsights] = useState<RealtimeInsight[]>([]);
@@ -204,6 +206,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
       const mChats = await fetchJson('/api/chats?session=mobile');
       if (mChats && mChats.length > 0) {
         setMobileChatLogs(mChats);
+      }
+
+      // William speaks first — fetch a greeting if no prior desktop chats today
+      const todayKey = new Date().toDateString();
+      const greetedToday = sessionStorage.getItem('william_greeted');
+      if (!greetedToday || greetedToday !== todayKey) {
+        const greeting = await fetchJson('/api/reasoner', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: '__GREETING__', session: 'desktop' })
+        });
+        if (greeting && greeting.reply) {
+          const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          setDesktopChatLogs(prev => [
+            { id: `greeting_${Date.now()}`, sender: 'william', text: greeting.reply, time },
+            ...prev
+          ]);
+          sessionStorage.setItem('william_greeted', todayKey);
+        }
       }
     }
     loadData();
@@ -824,7 +845,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
         </header>
 
         {/* CINEMATIC CANVAS */}
-        <main className="cinematic-canvas">
+        <main className={`cinematic-canvas${activeTab === 'home' ? ' home-mode' : ''}`}>
           
           {/* Glass segmented control tab bar */}
           <div className="glass-nav-bar">
@@ -916,9 +937,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
               {activeTab === 'home' && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                   {/* Big Breathing Orb Visualizer - Click to enter Focus Mode */}
-                  <div 
-                    className="breathing-assistant-orb-wrapper" 
-                    style={{ cursor: 'pointer' }}
+                  <div
+                    className="breathing-assistant-orb-wrapper"
+                    style={{ cursor: 'pointer', margin: '24px auto' }}
                     onClick={() => {
                       setIsFocusMode(true);
                       if (!worldModel) {
@@ -1310,45 +1331,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                       {isReflectionLoading ? 'Thinking...' : 'Execute Reflection Cycle'}
                     </button>
                   </div>
+                  <div className="dashboard-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div>
+                      <div style={{ fontSize: '0.9375rem', fontWeight: 500 }}>Developer Tools</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Show the simulation control deck for testing.</div>
+                    </div>
+                    <button className="zen-btn-outline" onClick={() => setShowSimPanel(prev => !prev)}>
+                      {showSimPanel ? 'Hide Panel' : 'Show Panel'}
+                    </button>
+                  </div>
+
                 </div>
               )}
             </motion.div>
           </AnimatePresence>
 
-          {/* Floating pill prompt bar (Visible only in companion home tab) */}
+          {/* Pinned Input Bar — always at viewport bottom */}
           {activeTab === 'home' && (
             <div className="floating-prompt-bar-wrapper">
-              {/* Quick Suggestions Pills */}
-              <div style={{ flexDirection: 'row', display: 'flex', gap: '8px', opacity: 0.8 }}>
-                <button 
-                  className="zen-btn-outline" 
-                  style={{ fontSize: '0.6875rem', padding: '4px 12px', borderRadius: '12px' }}
-                  onClick={() => setChatInput("Let's reflect on today's focus.")}
-                >
-                  📝 Reflect
-                </button>
-                <button 
-                  className="zen-btn-outline" 
-                  style={{ fontSize: '0.6875rem', padding: '4px 12px', borderRadius: '12px' }}
-                  onClick={() => setChatInput("Evolve my portrait beliefs.")}
-                >
-                  🔮 Evolve portrait
-                </button>
+
+              {/* Quick-action pill tray — flies UP when ⊕ is tapped */}
+              <div className={`quick-actions-tray${showQuickActions ? ' open' : ''}`}>
+                <button className="quick-action-pill" onClick={() => { setChatInput("Let's reflect on today's focus."); setShowQuickActions(false); }}>📝 Reflect</button>
+                <button className="quick-action-pill" onClick={() => { setChatInput("Evolve my portrait beliefs based on today."); setShowQuickActions(false); }}>🔮 Evolve portrait</button>
+                <button className="quick-action-pill" onClick={() => { setChatInput("What patterns are you noticing in me?"); setShowQuickActions(false); }}>📡 Patterns</button>
+                <button className="quick-action-pill" onClick={() => { setChatInput("What should I focus on right now?"); setShowQuickActions(false); }}>🎯 Focus</button>
               </div>
 
               <form onSubmit={handleSendDesktopChat} className="floating-prompt-bar">
+                {/* ⊕ expand button */}
+                <button
+                  type="button"
+                  className={`input-expand-btn${showQuickActions ? ' active' : ''}`}
+                  onClick={() => setShowQuickActions(prev => !prev)}
+                  title="Quick actions"
+                >
+                  +
+                </button>
                 <input
                   type="text"
                   className="floating-prompt-input"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder={isStreaming ? 'William is thinking...' : 'Ask William anything or reflect on your day...'}
+                  placeholder={isStreaming ? 'William is thinking...' : 'Ask William anything...'}
                   disabled={isStreaming}
+                  style={{ marginLeft: '10px' }}
                 />
-                <button 
-                  type="submit" 
-                  className="floating-prompt-send-btn" 
-                  disabled={!chatInput.trim()}
+                <button
+                  type="submit"
+                  className="floating-prompt-send-btn"
+                  disabled={!chatInput.trim() || isStreaming}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
@@ -1358,8 +1390,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
 
         </main>
 
-        {/* Floating simulation control deck */}
-        {renderFloatingSimulationPanel()}
+        {/* Simulation control deck — hidden by default, toggled in Settings */}
+        {showSimPanel && renderFloatingSimulationPanel()}
       </div>
     );
   }

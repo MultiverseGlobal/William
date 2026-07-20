@@ -550,26 +550,34 @@ body {
   max-width: 800px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Fix jumpiness by aligning to top */
+  justify-content: flex-start;
   align-items: center;
-  padding: 40px 24px 140px 24px; /* bottom padding space for floating bar */
+  padding: 24px 24px 100px 24px;
   z-index: 5;
   position: relative;
   text-align: center;
+  overflow-y: auto;
+}
+
+/* In home mode the page never scrolls — orb fills available space */
+.cinematic-canvas.home-mode {
+  overflow: hidden;
+  padding-bottom: 0;
+  justify-content: flex-start;
 }
 
 /* Big breathing orb visualizer */
 .breathing-assistant-orb-wrapper {
   position: relative;
-  width: 320px;
-  height: 320px;
+  width: 280px;
+  height: 280px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 20px;
-  margin-bottom: 32px;
+  flex-shrink: 0;
   cursor: pointer;
   perspective: 1000px;
+  /* No fixed margins — let the flex parent centre it */
 }
 
 /* Frosted Glass Segmented Navigation Control */
@@ -624,28 +632,47 @@ body {
   border-color: var(--text-secondary);
 }
 
+/* ─── True Sphere Orb — never deforms ───────────────────────────────────────
+   Key fix: border-radius is locked at 50% permanently.
+   The old orb-liquid animation morphed border-radius asymmetrically,
+   causing the egg/blob shape. It is removed entirely.
+   3D depth is achieved via the radial-gradient highlight at 32% 28%.
+─────────────────────────────────────────────────────────────────────────── */
 .breathing-assistant-orb {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #22d3ee 0%, #a78bfa 50%, #4c1d95 100%);
+  width: 160px;
+  height: 160px;
+  border-radius: 50%; /* LOCKED — never changes */
+
+  /* 3D sphere: specular highlight top-left, deep shadow bottom-right */
+  background: radial-gradient(
+    circle at 32% 28%,
+    rgba(255, 255, 255, 0.55) 0%,
+    #c4b5fd 14%,
+    #818cf8 32%,
+    #4f46e5 56%,
+    #312e81 78%,
+    #0d0d1a 100%
+  );
+
   position: relative;
   z-index: 3;
-  box-shadow: 0 0 50px 10px rgba(34, 211, 238, 0.4),
-              0 0 90px 30px rgba(167, 139, 250, 0.3),
-              inset -10px -10px 30px rgba(0, 0, 0, 0.5),
-              inset 10px 10px 30px rgba(255, 255, 255, 0.3);
-  animation: orb-breath 6s ease-in-out infinite,
-             orb-liquid 9s ease-in-out infinite;
-  transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.8s ease;
+
+  /* Ambient glow — indigo/lavender halo */
+  box-shadow:
+    0 0 35px 6px rgba(129, 140, 248, 0.4),
+    0 0 70px 18px rgba(167, 139, 250, 0.25),
+    0 0 110px 35px rgba(99, 102, 241, 0.12);
+
+  animation: orb-breath 6s ease-in-out infinite;
+  transition: box-shadow 0.8s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .breathing-assistant-orb:hover {
-  transform: scale(1.12) rotate(15deg);
-  box-shadow: 0 0 70px 20px rgba(34, 211, 238, 0.6),
-              0 0 120px 50px rgba(167, 139, 250, 0.5),
-              inset -5px -5px 20px rgba(0, 0, 0, 0.4),
-              inset 5px 5px 20px rgba(255, 255, 255, 0.4);
+  transform: scale(1.08);
+  box-shadow:
+    0 0 50px 10px rgba(129, 140, 248, 0.6),
+    0 0 90px 30px rgba(167, 139, 250, 0.45),
+    0 0 140px 50px rgba(99, 102, 241, 0.2);
 }
 
 /* Frosted glass ring wrapping the orb */
@@ -709,20 +736,8 @@ body {
   animation-delay: 2.6s;
 }
 
-@keyframes orb-liquid {
-  0% {
-    border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%;
-  }
-  33% {
-    border-radius: 58% 42% 52% 48% / 46% 54% 44% 56%;
-  }
-  66% {
-    border-radius: 46% 54% 42% 58% / 53% 47% 57% 43%;
-  }
-  100% {
-    border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%;
-  }
-}
+/* orb-liquid removed — it caused the egg/blob deformation */
+/* The sphere stays a perfect circle at all times */
 
 @keyframes glass-float {
   0%, 100% {
@@ -772,37 +787,117 @@ body {
 
 .cinematic-dialogue-box {
   width: 100%;
-  min-height: 120px;
+  min-height: 80px;
+  max-height: 120px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  margin-bottom: 24px;
+  margin-top: 20px;
+  overflow: hidden; /* Never scrolls — max 2 lines */
 }
 
 .cinematic-dialogue-text {
-  font-family: Georgia, serif;
-  font-size: 1.625rem;
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
   font-style: italic;
-  line-height: 1.6;
+  line-height: 1.5;
   color: var(--text-primary);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  max-width: 680px;
+  max-width: 560px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-/* Floating centered prompt bar */
+/* ─── Pinned Input Bar — always at the bottom of the viewport ──────────────
+   Sits just above the browser chrome.
+   Quick-action pills slide UP from above it when the ⊕ button is tapped.
+─────────────────────────────────────────────────────────────────────────── */
 .floating-prompt-bar-wrapper {
   position: fixed;
-  bottom: 48px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 90%;
-  max-width: 640px;
+  width: 100%;
+  max-width: 680px;
   z-index: 100;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 0;
+  padding: 12px 16px 20px;
+  background: linear-gradient(to top, var(--bg-canvas) 60%, transparent);
+}
+
+/* Quick-action pill tray — slides up from above the input */
+.quick-actions-tray {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 10px;
+  transform: translateY(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+.quick-actions-tray.open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.quick-action-pill {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 5px 13px;
+  border-radius: 14px;
+  border: 1px solid var(--border-hairline);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  backdrop-filter: blur(12px);
+  white-space: nowrap;
+}
+
+.quick-action-pill:hover {
+  background: var(--focus-glow);
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+/* The expand ⊕ button left of the input */
+.input-expand-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 17px;
+  border: 1px solid var(--border-hairline);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.2s ease;
+}
+
+.input-expand-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+.input-expand-btn.active {
+  transform: rotate(45deg);
+  color: var(--color-teal);
+  border-color: var(--color-teal);
 }
 
 .floating-prompt-bar {

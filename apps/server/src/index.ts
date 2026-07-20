@@ -124,13 +124,19 @@ async function generateWilliamResponse(
   const existingNodes = worldModel.nodes;
   extractEntitiesFromText(userText, existingNodes).catch(() => {});
 
+  // Intercept greeting trigger
+  const isGreeting = userText === '__GREETING__';
+  const greetingPrompt = isGreeting
+    ? `Open the session with a single short, personal greeting for ${portrait.name}. It is ${timeOfDay}. Reference one specific detail from their portrait (a current belief, journey, or dream). Do not start with 'Hello' or 'Good morning'. Keep it under 2 sentences.`
+    : userText;
+
   if (hasKeys) {
     try {
       const systemPrompt = buildWilliamSystemPrompt(portrait, worldContext, insights, timeOfDay);
       const response = await BrainGateway.execute({
         systemPrompt,
-        userPrompt: userText,
-        maxTokens: 300,
+        userPrompt: greetingPrompt,
+        maxTokens: isGreeting ? 120 : 300,
         model: process.env.OMNIROUTE_REASONER_MODEL
       });
 
@@ -157,7 +163,15 @@ async function generateWilliamResponse(
   const query = userText.toLowerCase();
   let fallbackReply: string;
 
-  if (query.includes('exhausted') || query.includes('tired') || query.includes('sleep')) {
+  if (userText === '__GREETING__') {
+    const greetings: Record<string, string> = {
+      morning: `The morning is here, ${portrait.name}. Before the noise builds — what is the one thing that would make today feel complete?`,
+      afternoon: `You are mid-session, ${portrait.name}. What has your energy been like since we last spoke?`,
+      evening: `The day is closing, ${portrait.name}. What is worth holding onto from today before we let it go?`,
+      night: `Still here, ${portrait.name}. The quiet hours are useful ones. What is on your mind?`
+    };
+    fallbackReply = greetings[timeOfDay] || greetings['evening'];
+  } else if (query.includes('exhausted') || query.includes('tired') || query.includes('sleep')) {
     fallbackReply = `Exhaustion is a constraint of the body, ${portrait.name}. Let's close active projects for today. Rest is not laziness; it is a critical strategy.`;
   } else if (query.includes('frustrated') || query.includes('stuck') || query.includes('difficult')) {
     fallbackReply = `When you feel stuck, it is often a sign that the current systems are working against your energy levels. Let's step back and inspect the constraints together.`;
