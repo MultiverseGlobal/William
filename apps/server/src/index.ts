@@ -634,6 +634,24 @@ app.get('/api/world-model', async (_req: Request, res: Response) => {
   try { res.json(await getWorldModel()); } catch (error) { res.status(500).json({ error: (error as Error).message }); }
 });
 
+app.post('/api/world-model/node', async (req: Request, res: Response) => {
+  try {
+    const { saveMemoryNode } = await import('./memoryAdapter.js');
+    await saveMemoryNode(req.body);
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: (error as Error).message }); }
+});
+
+app.post('/api/world-model/edge', async (req: Request, res: Response) => {
+  try {
+    const { saveMemoryEdge } = await import('./memoryAdapter.js');
+    await saveMemoryEdge(req.body);
+    res.json({ success: true });
+  } catch (error) { res.status(500).json({ error: (error as Error).message }); }
+});
+
+
+
 // 12. Action Layer
 app.post('/api/actions', async (req: Request, res: Response) => {
   try {

@@ -2,7 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ConstitutionRule, ContextState, Integration, Portrait, Journey, LibraryItem, RealtimeInsight, WorldModel } from '@william/types';
 import { CommandPalette } from './CommandPalette';
 import { GoalConstellation } from './GoalConstellation';
+import { CognitiveMap } from './CognitiveMap';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { MemoryNode, MemoryEdge } from '@william/types';
+
 
 interface DashboardProps {
   initialData: {
@@ -54,6 +57,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   const [mobileTab, setMobileTab] = useState<'chat' | 'journey' | 'portrait' | 'today'>('today');
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
 
   // Real-time insights
   const [activeInsights, setActiveInsights] = useState<RealtimeInsight[]>([]);
@@ -70,6 +74,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   // Proactive presence signal
   const [presenceSignal, setPresenceSignal] = useState<{ message: string; need: string; signalId?: string } | null>(null);
 
+  // Poll presence signals on load and check periodically
+  useEffect(() => {
+    async function checkPresence() {
+      const res = await fetchJson('/api/presence');
+      if (res && res.checkIn) {
+        setPresenceSignal({
+          message: res.message,
+          need: res.need,
+          signalId: res.signalId
+        });
+      }
+    }
+    checkPresence();
+    const interval = setInterval(checkPresence, 20000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle ESC key to exit Focus Mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsFocusMode(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Time of day adaptive theme
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
   useEffect(() => {
@@ -80,6 +112,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
     const palette = TIME_PALETTES[timeOfDay];
     Object.entries(palette).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
   }, [timeOfDay]);
+
+  // Cognitive map node and edge persistence functions
+  const handleSaveNode = async (node: MemoryNode) => {
+    await fetchJson('/api/world-model/node', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(node)
+    });
+  };
+
+  const handleSaveEdge = async (edge: MemoryEdge) => {
+    await fetchJson('/api/world-model/edge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(edge)
+    });
+  };
+
 
   // Core Monorepo States
   const [portrait, setPortrait] = useState<Portrait>(initialData.portrait);
@@ -865,8 +915,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
               {/* Home tab: Companion Visualizer */}
               {activeTab === 'home' && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                  {/* Big Breathing Orb Visualizer */}
-                  <div className="breathing-assistant-orb-wrapper">
+                  {/* Big Breathing Orb Visualizer - Click to enter Focus Mode */}
+                  <div 
+                    className="breathing-assistant-orb-wrapper" 
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      setIsFocusMode(true);
+                      if (!worldModel) {
+                        fetchJson('/api/world-model').then(d => d && setWorldModel(d));
+                      }
+                    }}
+                  >
                     <div className="breathing-assistant-orb-ripple" />
                     <div className="breathing-assistant-orb-ripple" />
                     <div className="breathing-assistant-orb-ripple" />
@@ -875,6 +934,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                     <div className="breathing-assistant-orb-glass-shield" />
                     <div className="breathing-assistant-orb" />
                   </div>
+
 
                   {/* Dialogue display in serif typography */}
                   <div className="cinematic-dialogue-box">
@@ -1307,6 +1367,141 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
   return (
     <div className="zen-container" style={{ justifyContent: 'flex-start', minHeight: '100vh', paddingBottom: '80px' }}>
       
+      {/* Immersive Focus Mode Fullscreen Overlay */}
+      {isFocusMode && worldModel && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1900, display: 'flex', flexDirection: 'column', background: '#0a0a0c' }}>
+          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#111115' }}>
+            <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-serif)' }}>Focus Mode</span>
+            <button 
+              className="zen-btn-outline" 
+              style={{ padding: '6px 14px', fontSize: '0.75rem', borderRadius: '16px' }}
+              onClick={() => setIsFocusMode(false)}
+            >
+              Exit Focus Mode (Esc)
+            </button>
+          </header>
+          <div style={{ flex: 1 }}>
+            <CognitiveMap
+              worldModel={worldModel}
+              onRefresh={() => fetchJson('/api/world-model').then(d => d && setWorldModel(d))}
+              onSaveNode={handleSaveNode}
+              onSaveEdge={handleSaveEdge}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Actions Drawer */}
+      <AnimatePresence>
+        {isActionsOpen && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1800, display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => setIsActionsOpen(false)}>
+            <motion.div
+              initial={{ x: 400, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 400, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                width: '100%', maxWidth: '380px', height: '100%', background: 'var(--bg-surface)',
+                borderLeft: '1px solid var(--border-hairline)', padding: '32px 24px', display: 'flex',
+                flexDirection: 'column', gap: '24px', boxShadow: '-10px 0 40px rgba(0,0,0,0.3)'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="zen-caption" style={{ textTransform: 'uppercase' }}>Companion Actions</span>
+                <button className="zen-btn-outline" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => setIsActionsOpen(false)}>
+                  Close
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, overflowY: 'auto' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 500, fontFamily: 'var(--font-serif)' }}>Actions Control</h3>
+                
+                {/* Task Creation Shortcut */}
+                <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Quick Task Creation</span>
+                  <input
+                    type="text"
+                    className="zen-input"
+                    placeholder="Task title..."
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter') {
+                        const val = (e.target as HTMLInputElement).value;
+                        if (!val.trim()) return;
+                        await fetchJson('/api/actions', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ type: 'create_task', title: val.trim(), payload: { title: val.trim() } })
+                        });
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }}
+                  />
+                  <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Press Enter to save to Atlas / Action logs</span>
+                </div>
+
+                {/* Reminder Creation Shortcut */}
+                <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Schedule Proactive Reminder</span>
+                  <input
+                    type="text"
+                    className="zen-input"
+                    placeholder="Reminder message..."
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter') {
+                        const val = (e.target as HTMLInputElement).value;
+                        if (!val.trim()) return;
+                        const trigger = new Date(Date.now() + 5000).toISOString(); // 5s from now for testing
+                        await fetchJson('/api/actions', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            type: 'schedule_reminder',
+                            title: `Reminder: ${val.trim()}`,
+                            payload: { message: val.trim(), triggerTime: trigger }
+                          })
+                        });
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }}
+                  />
+                  <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>Saves a due trigger in proactive_signals</span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Presence Signal Modal */}
+      {presenceSignal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(9,9,11,0.8)', backdropFilter: 'blur(10px)' }}>
+          <div className="dashboard-card" style={{ width: '90%', maxWidth: '440px', padding: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <span style={{ fontSize: '0.6875rem', textTransform: 'uppercase', color: 'var(--color-gold)', letterSpacing: '0.15em' }}>
+              Companion Check-in
+            </span>
+            <p style={{ fontSize: '1.125rem', color: 'var(--text-primary)', fontFamily: 'var(--font-serif)', fontStyle: 'italic', lineHeight: 1.6 }}>
+              "{presenceSignal.message}"
+            </p>
+            <button
+              className="zen-btn"
+              onClick={async () => {
+                if (presenceSignal.signalId) {
+                  await fetchJson('/api/presence/acknowledge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ signalId: presenceSignal.signalId })
+                  });
+                }
+                setPresenceSignal(null);
+              }}
+            >
+              Acknowledge
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Nightly Reflection Overlay */}
       {reflectionOverlayText && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(9, 9, 11, 0.85)', backdropFilter: 'blur(12px)' }}>
@@ -1387,6 +1582,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                 {tab === 'home' ? 'Study' : tab === 'world' ? 'World' : tab}
               </button>
             ))}
+            <button
+              onClick={() => setIsActionsOpen(true)}
+              className="zen-nav-link"
+              style={{ background: 'none', border: 'none' }}
+            >
+              Actions
+            </button>
           </div>
         )}
       </nav>
@@ -1394,6 +1596,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
       {/* RENDER DUAL LAYOUT: DESKTOP OR MOBILE FRAME */}
       <div className={`zen-content ${(deviceType as string) === 'desktop' ? 'desktop-wide' : ''}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
         <AnimatePresence mode="wait">
+
           
           {/* ==================== 1. DESKTOP VIEW ==================== */}
           {(deviceType as string) === 'desktop' && (

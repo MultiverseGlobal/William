@@ -1,8 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
 
 :root {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-cursive: 'Caveat', cursive;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
 
   /* Theme: Light (Warm Stone / Bone-White) */
   --bg-canvas: #fbfbfa;
@@ -15,8 +16,12 @@
   --accent-text: #ffffff;
   --focus-glow: rgba(0, 0, 0, 0.04);
   
+  /* Accents */
+  --color-gold: #c5a059;
+  --color-teal: #0d9488;
+  
   /* Breathing Ambient Light Glow */
-  --glow-color: rgba(0, 122, 255, 0.04);
+  --glow-color: radial-gradient(circle, rgba(99,179,237,0.12) 0%, transparent 70%);
   
   --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.02), 0 8px 24px rgba(0, 0, 0, 0.04);
   --max-width-focus: 560px;
@@ -24,21 +29,22 @@
 
 [data-theme="dark"] {
   /* Theme: Dark (Deep Carbon / Matte Black) */
-  --bg-canvas: #09090b;
-  --bg-surface: #121214;
-  --text-primary: #f4f4f5;
+  --bg-canvas: #0a0a0c;
+  --bg-surface: #111115;
+  --text-primary: #e4e4e7;
   --text-secondary: #a1a1aa;
   --text-muted: #52525b;
-  --border-hairline: #27272a;
-  --accent-color: #ffffff;
-  --accent-text: #09090b;
-  --focus-glow: rgba(255, 255, 255, 0.04);
+  --border-hairline: rgba(255, 255, 255, 0.07);
+  --accent-color: #e4e4e7;
+  --accent-text: #0a0a0c;
+  --focus-glow: rgba(255, 255, 255, 0.03);
   
   /* Breathing Ambient Dark Glow */
-  --glow-color: rgba(139, 92, 246, 0.03);
+  --glow-color: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
   
   --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.4);
 }
+
 
 * {
   box-sizing: border-box;

@@ -16,6 +16,9 @@ import {
   Easing
 } from 'react-native';
 import type { Portrait, Journey, LibraryItem } from '@william/types';
+import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 interface ChatMessage {
   id: string;
@@ -35,7 +38,7 @@ export default function HomeScreen() {
   const [portrait, setPortrait] = useState<Portrait | null>(null);
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [chatLogs, setChatLogs] = useState<ChatMessage[]>([]);
-  const [currentTab, setCurrentTab] = useState<'chat' | 'journey' | 'portrait' | 'today'>('today');
+  const [currentTab, setCurrentTab] = useState<'chat' | 'journey' | 'portrait' | 'today' | 'widgets'>('today');
   const [isLoading, setIsLoading] = useState(true);
   const [isThinking, setIsThinking] = useState(false);
 
@@ -277,21 +280,25 @@ export default function HomeScreen() {
     setIsLoading(false);
   };
 
-  // Send message to brain
+  // Send message to brain with haptic feedback & offline sync fallback
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const userText = chatInput.trim();
     setChatInput('');
+
+    // Trigger soft haptic feedback when typing/sending
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch (_) {}
 
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMsg: ChatMessage = { id: `muser_${Date.now()}`, sender: 'user', text: userText, time };
     setChatLogs(prev => [...prev, userMsg]);
     setIsThinking(true);
 
+    const payload = { text: userText, session: 'mobile' };
     const res = await fetchJson('/api/reasoner', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: userText, session: 'mobile' })
+      body: JSON.stringify(payload)
     });
 
     setIsThinking(false);
@@ -303,8 +310,58 @@ export default function HomeScreen() {
         text: res.reply,
         time
       }]);
+    } else {
+      // Offline fallback: Queue this request to sync later
+      try {
+        const queuedStr = await AsyncStorage.getItem('@william/sync_queue');
+        const queue = queuedStr ? JSON.parse(queuedStr) : [];
+        queue.push({ endpoint: '/api/reasoner', payload });
+        await AsyncStorage.setItem('@william/sync_queue', JSON.stringify(queue));
+        
+        setChatLogs(prev => [...prev, {
+          id: `mwilliam_off_${Date.now()}`,
+          sender: 'william',
+          text: "[Offline Mode] I have recorded your message locally and will analyze it once we re-establish a network connection.",
+          time
+        }]);
+      } catch (_) {}
     }
   };
+
+  // Background Sync engine to flush queued requests when server is online
+  useEffect(() => {
+    async function flushQueue() {
+      try {
+        const queuedStr = await AsyncStorage.getItem('@william/sync_queue');
+        if (!queuedStr) return;
+        const queue = JSON.parse(queuedStr);
+        if (queue.length === 0) return;
+
+        // Test server online
+        const serverOnline = await fetchJson('/api/portrait');
+        if (!serverOnline) return;
+
+        // Process queue sequentially
+        for (const item of queue) {
+          await fetchJson(item.endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item.payload)
+          });
+        }
+
+        // Clear queue
+        await AsyncStorage.removeItem('@william/sync_queue');
+        console.log(`SyncEngine: Successfully flushed ${queue.length} offline operations.`);
+      } catch (e) {
+        console.warn('SyncEngine failed flushing queue:', e);
+      }
+    }
+
+    const interval = setInterval(flushQueue, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
 
   // Save mobile presence capture
   const handleSaveCapture = async () => {
@@ -370,8 +427,12 @@ export default function HomeScreen() {
       body: JSON.stringify({ text: `Captured [${typeLabel}] on mobile: "${text}"`, category: 'thought' })
     });
 
+    // Trigger success haptic notification pulse
+    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}); } catch (_) {}
+
     setCaptureType(null);
   };
+
 
   // Toggle milestone completion
   const handleToggleMilestone = async (journeyId: string, milestoneId: string) => {
@@ -773,6 +834,61 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Tab 5: Widgets (Simulated Companion Widgets) */}
+        {currentTab === 'widgets' && (
+          <ScrollView style={styles.tabContent} contentContainerStyle={styles.scrollPadding}>
+            <Text style={styles.tabTitle}>Companion Widgets</Text>
+            <Text style={{ color: '#a1a1aa', fontSize: 13, marginBottom: 20 }}>
+              Preview how William integrates directly into your native phone home screens.
+            </Text>
+
+            {/* Widget 1: Today's Focus */}
+            <View style={[styles.card, { borderColor: '#c5a059', borderWidth: 1.5 }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ color: '#c5a059', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Focus Widget</Text>
+                <Text style={{ fontSize: 14 }}>🎯</Text>
+              </View>
+              <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '600' }}>
+                {journeys.length > 0 && journeys[0].milestones.find(m => !m.completed)?.text || 'No pending milestones'}
+              </Text>
+              <Text style={{ color: '#a1a1aa', fontSize: 11, marginTop: 4 }}>
+                Active Journey: {journeys.length > 0 ? journeys[0].title : 'None'}
+              </Text>
+            </View>
+
+            {/* Widget 2: Recent Insight */}
+            <View style={[styles.card, { borderColor: '#0d9488', borderWidth: 1.5 }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ color: '#0d9488', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Insight Widget</Text>
+                <Text style={{ fontSize: 14 }}>💡</Text>
+              </View>
+              <Text style={{ color: '#ffffff', fontSize: 13, fontStyle: 'italic', lineHeight: 18 }}>
+                {portrait && portrait.growth.length > 0 
+                  ? `"${portrait.growth.slice(-1)[0]}"`
+                  : '"William is observing your patterns. Daily checks establish clarity."'}
+              </Text>
+              <Text style={{ color: '#a1a1aa', fontSize: 11, marginTop: 6 }}>
+                Pattern engine active
+              </Text>
+            </View>
+
+            {/* Widget 3: Unfinished Thought */}
+            <View style={styles.card}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ color: '#a1a1aa', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Unfinished Thought</Text>
+                <Text style={{ fontSize: 14 }}>📝</Text>
+              </View>
+              <Text style={{ color: '#ffffff', fontSize: 13 }}>
+                "Check Atlas architecture compilation bounds..."
+              </Text>
+              <Text style={{ color: '#a1a1aa', fontSize: 11, marginTop: 4 }}>
+                Logged 2 hours ago from voice walk
+              </Text>
+            </View>
+          </ScrollView>
+        )}
+
+
       </View>
 
       {/* Capture Full-Screen Modals */}
@@ -904,7 +1020,16 @@ export default function HomeScreen() {
           <Text style={[styles.navIcon, currentTab === 'today' && styles.activeNavText]}>⚡</Text>
           <Text style={[styles.navText, currentTab === 'today' && styles.activeNavText]}>Today</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => setCurrentTab('widgets')}
+        >
+          <Text style={[styles.navIcon, currentTab === 'widgets' && styles.activeNavText]}>📱</Text>
+          <Text style={[styles.navText, currentTab === 'widgets' && styles.activeNavText]}>Widgets</Text>
+        </TouchableOpacity>
       </View>
+
     </SafeAreaView>
   );
 }
