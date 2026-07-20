@@ -1,6 +1,16 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getDatabase } from './db';
-import type { Portrait, Journey, LibraryItem } from '@william/types';
+import type {
+  Portrait,
+  Journey,
+  LibraryItem,
+  MemoryNode,
+  MemoryEdge,
+  ProactiveSignal,
+  ActionLog,
+  ActionType,
+  ProactiveSignalType
+} from '@william/types';
 
 const useSupabase = !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 let supabase: SupabaseClient | null = null;
@@ -307,6 +317,258 @@ export async function saveChat(chat: { id: string; sender: string; text: string;
       chat.text,
       chat.time,
       chat.session
+    );
+  }
+}
+
+// 6. Memory Graph Operations
+export async function getMemoryNodes(): Promise<MemoryNode[]> {
+  if (useSupabase && supabase) {
+    const { data, error } = await supabase.from('memory_nodes').select('*');
+    if (error || !data) return [];
+    return data.map((r: any) => ({
+      id: r.id,
+      type: r.type,
+      label: r.label,
+      description: r.description,
+      confidence: r.confidence,
+      lastUpdated: r.last_updated,
+      metadata: r.metadata || {}
+    }));
+  } else {
+    const db = await getDatabase();
+    const rows = await db.all('SELECT * FROM memory_nodes ORDER BY last_updated DESC');
+    return rows.map((r: any) => ({
+      id: r.id,
+      type: r.type,
+      label: r.label,
+      description: r.description,
+      confidence: r.confidence,
+      lastUpdated: r.last_updated,
+      metadata: JSON.parse(r.metadata || '{}')
+    }));
+  }
+}
+
+export async function saveMemoryNode(node: MemoryNode): Promise<void> {
+  if (useSupabase && supabase) {
+    const { error } = await supabase.from('memory_nodes').upsert({
+      id: node.id,
+      type: node.type,
+      label: node.label,
+      description: node.description,
+      confidence: node.confidence,
+      last_updated: node.lastUpdated,
+      metadata: node.metadata
+    });
+    if (error) throw error;
+  } else {
+    const db = await getDatabase();
+    await db.run(`
+      INSERT INTO memory_nodes (id, type, label, description, confidence, last_updated, metadata)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        type = excluded.type,
+        label = excluded.label,
+        description = excluded.description,
+        confidence = excluded.confidence,
+        last_updated = excluded.last_updated,
+        metadata = excluded.metadata
+    `,
+      node.id, node.type, node.label, node.description,
+      node.confidence, node.lastUpdated, JSON.stringify(node.metadata)
+    );
+  }
+}
+
+export async function getMemoryEdges(): Promise<MemoryEdge[]> {
+  if (useSupabase && supabase) {
+    const { data, error } = await supabase.from('memory_edges').select('*');
+    if (error || !data) return [];
+    return data.map((r: any) => ({
+      id: r.id,
+      fromId: r.from_id,
+      toId: r.to_id,
+      relation: r.relation,
+      strength: r.strength,
+      createdAt: r.created_at
+    }));
+  } else {
+    const db = await getDatabase();
+    const rows = await db.all('SELECT * FROM memory_edges');
+    return rows.map((r: any) => ({
+      id: r.id,
+      fromId: r.from_id,
+      toId: r.to_id,
+      relation: r.relation,
+      strength: r.strength,
+      createdAt: r.created_at
+    }));
+  }
+}
+
+export async function saveMemoryEdge(edge: MemoryEdge): Promise<void> {
+  if (useSupabase && supabase) {
+    const { error } = await supabase.from('memory_edges').upsert({
+      id: edge.id,
+      from_id: edge.fromId,
+      to_id: edge.toId,
+      relation: edge.relation,
+      strength: edge.strength,
+      created_at: edge.createdAt
+    });
+    if (error) throw error;
+  } else {
+    const db = await getDatabase();
+    await db.run(`
+      INSERT INTO memory_edges (id, from_id, to_id, relation, strength, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        strength = excluded.strength
+    `,
+      edge.id, edge.fromId, edge.toId, edge.relation, edge.strength, edge.createdAt
+    );
+  }
+}
+
+// 7. Proactive Signals Operations
+export async function getProactiveSignals(unacknowledgedOnly = false): Promise<ProactiveSignal[]> {
+  if (useSupabase && supabase) {
+    let q = supabase.from('proactive_signals').select('*').order('trigger_time', { ascending: true });
+    if (unacknowledgedOnly) q = q.eq('acknowledged', false);
+    const { data, error } = await q;
+    if (error || !data) return [];
+    return data.map((r: any) => ({
+      id: r.id,
+      type: r.type as ProactiveSignalType,
+      triggerTime: r.trigger_time,
+      message: r.message,
+      acknowledged: r.acknowledged === true || r.acknowledged === 1,
+      createdAt: r.created_at
+    }));
+  } else {
+    const db = await getDatabase();
+    const clause = unacknowledgedOnly ? 'WHERE acknowledged = 0' : '';
+    const rows = await db.all(`SELECT * FROM proactive_signals ${clause} ORDER BY trigger_time ASC`);
+    return rows.map((r: any) => ({
+      id: r.id,
+      type: r.type as ProactiveSignalType,
+      triggerTime: r.trigger_time,
+      message: r.message,
+      acknowledged: r.acknowledged === 1,
+      createdAt: r.created_at
+    }));
+  }
+}
+
+export async function saveProactiveSignal(signal: ProactiveSignal): Promise<void> {
+  if (useSupabase && supabase) {
+    const { error } = await supabase.from('proactive_signals').upsert({
+      id: signal.id,
+      type: signal.type,
+      trigger_time: signal.triggerTime,
+      message: signal.message,
+      acknowledged: signal.acknowledged,
+      created_at: signal.createdAt
+    });
+    if (error) throw error;
+  } else {
+    const db = await getDatabase();
+    await db.run(`
+      INSERT INTO proactive_signals (id, type, trigger_time, message, acknowledged, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        acknowledged = excluded.acknowledged,
+        message = excluded.message
+    `,
+      signal.id, signal.type, signal.triggerTime, signal.message,
+      signal.acknowledged ? 1 : 0, signal.createdAt
+    );
+  }
+}
+
+export async function acknowledgeSignal(signalId: string): Promise<void> {
+  if (useSupabase && supabase) {
+    await supabase.from('proactive_signals').update({ acknowledged: true }).eq('id', signalId);
+  } else {
+    const db = await getDatabase();
+    await db.run('UPDATE proactive_signals SET acknowledged = 1 WHERE id = ?', signalId);
+  }
+}
+
+// 8. Action Log Operations
+export async function getActionLog(status?: 'pending' | 'executed' | 'failed'): Promise<ActionLog[]> {
+  if (useSupabase && supabase) {
+    let q = supabase.from('action_log').select('*').order('created_at', { ascending: false });
+    if (status) q = q.eq('status', status);
+    const { data, error } = await q;
+    if (error || !data) return [];
+    return data.map((r: any) => ({
+      id: r.id,
+      actionType: r.action_type as ActionType,
+      payload: typeof r.payload === 'string' ? JSON.parse(r.payload) : r.payload,
+      status: r.status,
+      createdAt: r.created_at,
+      executedAt: r.executed_at,
+      error: r.error
+    }));
+  } else {
+    const db = await getDatabase();
+    const clause = status ? `WHERE status = '${status}'` : '';
+    const rows = await db.all(`SELECT * FROM action_log ${clause} ORDER BY created_at DESC`);
+    return rows.map((r: any) => ({
+      id: r.id,
+      actionType: r.action_type as ActionType,
+      payload: JSON.parse(r.payload || '{}'),
+      status: r.status,
+      createdAt: r.created_at,
+      executedAt: r.executed_at,
+      error: r.error
+    }));
+  }
+}
+
+export async function saveActionLog(action: ActionLog): Promise<void> {
+  if (useSupabase && supabase) {
+    const { error } = await supabase.from('action_log').upsert({
+      id: action.id,
+      action_type: action.actionType,
+      payload: action.payload,
+      status: action.status,
+      created_at: action.createdAt,
+      executed_at: action.executedAt || null,
+      error: action.error || null
+    });
+    if (error) throw error;
+  } else {
+    const db = await getDatabase();
+    await db.run(`
+      INSERT INTO action_log (id, action_type, payload, status, created_at, executed_at, error)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        status = excluded.status,
+        executed_at = excluded.executed_at,
+        error = excluded.error
+    `,
+      action.id, action.actionType, JSON.stringify(action.payload),
+      action.status, action.createdAt, action.executedAt || null, action.error || null
+    );
+  }
+}
+
+export async function updateActionStatus(
+  id: string,
+  status: 'executed' | 'failed',
+  error?: string
+): Promise<void> {
+  const executedAt = new Date().toISOString();
+  if (useSupabase && supabase) {
+    await supabase.from('action_log').update({ status, executed_at: executedAt, error: error || null }).eq('id', id);
+  } else {
+    const db = await getDatabase();
+    await db.run(
+      'UPDATE action_log SET status = ?, executed_at = ?, error = ? WHERE id = ?',
+      status, executedAt, error || null, id
     );
   }
 }

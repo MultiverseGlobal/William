@@ -14,7 +14,7 @@ export async function getDatabase(): Promise<Database> {
     driver: sqlite3.Database
   });
 
-  // Initialize schemas
+  // Initialize core schemas
   await db.exec(`
     CREATE TABLE IF NOT EXISTS portrait (
       id TEXT PRIMARY KEY,
@@ -34,15 +34,18 @@ export async function getDatabase(): Promise<Database> {
   `);
 
   // Self-healing migrations for existing database files
-  try {
-    await db.exec(`ALTER TABLE portrait ADD COLUMN cognitive_profile TEXT;`);
-  } catch (e) {}
-  try {
-    await db.exec(`ALTER TABLE portrait ADD COLUMN active_beliefs TEXT;`);
-  } catch (e) {}
+  const portraitColumns = [
+    'cognitive_profile TEXT',
+    'active_beliefs TEXT',
+    'emotional_trends TEXT',
+    'behavioral_patterns TEXT',
+    'identity_evolution TEXT',
+  ];
+  for (const col of portraitColumns) {
+    try { await db.exec(`ALTER TABLE portrait ADD COLUMN ${col};`); } catch (_) {}
+  }
 
   await db.exec(`
-
     CREATE TABLE IF NOT EXISTS journeys (
       id TEXT PRIMARY KEY,
       category TEXT,
@@ -80,6 +83,47 @@ export async function getDatabase(): Promise<Database> {
       text TEXT,
       time TEXT,
       session TEXT
+    );
+
+    -- Knowledge Graph
+    CREATE TABLE IF NOT EXISTS memory_nodes (
+      id TEXT PRIMARY KEY,
+      type TEXT,              -- MemoryNodeType
+      label TEXT,
+      description TEXT,
+      confidence REAL DEFAULT 1.0,
+      last_updated TEXT,
+      metadata TEXT           -- JSON object
+    );
+
+    CREATE TABLE IF NOT EXISTS memory_edges (
+      id TEXT PRIMARY KEY,
+      from_id TEXT,
+      to_id TEXT,
+      relation TEXT,          -- MemoryRelation
+      strength REAL DEFAULT 1.0,
+      created_at TEXT
+    );
+
+    -- Proactive System
+    CREATE TABLE IF NOT EXISTS proactive_signals (
+      id TEXT PRIMARY KEY,
+      type TEXT,              -- ProactiveSignalType
+      trigger_time TEXT,
+      message TEXT,
+      acknowledged INTEGER DEFAULT 0,
+      created_at TEXT
+    );
+
+    -- Action Layer
+    CREATE TABLE IF NOT EXISTS action_log (
+      id TEXT PRIMARY KEY,
+      action_type TEXT,       -- ActionType
+      payload TEXT,           -- JSON
+      status TEXT DEFAULT 'pending',
+      created_at TEXT,
+      executed_at TEXT,
+      error TEXT
     );
   `);
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import type { ConstitutionRule, ContextState, Integration, Portrait, Journey, LibraryItem } from '@william/types';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import type { ConstitutionRule, ContextState, Integration, Portrait, Journey, LibraryItem, RealtimeInsight, WorldModel } from '@william/types';
 import { CommandPalette } from './CommandPalette';
 import { GoalConstellation } from './GoalConstellation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,12 +31,55 @@ interface TimelineItem {
   text: string;
 }
 
+// ─── Time-of-day theming helper ──────────────────────────────────────────────
+function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return 'morning';
+  if (h >= 12 && h < 17) return 'afternoon';
+  if (h >= 17 && h < 22) return 'evening';
+  return 'night';
+}
+
+const TIME_PALETTES = {
+  morning:   { '--glow-color': 'radial-gradient(circle, rgba(99,179,237,0.15) 0%, transparent 70%)' },
+  afternoon: { '--glow-color': 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)' },
+  evening:   { '--glow-color': 'radial-gradient(circle, rgba(67,56,202,0.2) 0%, transparent 70%)' },
+  night:     { '--glow-color': 'radial-gradient(circle, rgba(15,23,42,0.4) 0%, transparent 70%)' },
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [deviceType, setDeviceType] = useState<'desktop' | 'mobile'>('desktop');
-  const [activeTab, setActiveTab] = useState<'home' | 'portrait' | 'journeys' | 'library' | 'settings'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'portrait' | 'journeys' | 'library' | 'settings' | 'world' | 'actions'>('home');
   const [mobileTab, setMobileTab] = useState<'chat' | 'journey' | 'portrait' | 'today'>('today');
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+
+  // Real-time insights
+  const [activeInsights, setActiveInsights] = useState<RealtimeInsight[]>([]);
+  const [dismissedInsight, setDismissedInsight] = useState(false);
+
+  // Streaming
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
+  const streamingRef = useRef('');
+
+  // World model
+  const [worldModel, setWorldModel] = useState<WorldModel | null>(null);
+
+  // Proactive presence signal
+  const [presenceSignal, setPresenceSignal] = useState<{ message: string; need: string; signalId?: string } | null>(null);
+
+  // Time of day adaptive theme
+  const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
+  useEffect(() => {
+    const interval = setInterval(() => setTimeOfDay(getTimeOfDay()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+  useEffect(() => {
+    const palette = TIME_PALETTES[timeOfDay];
+    Object.entries(palette).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
+  }, [timeOfDay]);
 
   // Core Monorepo States
   const [portrait, setPortrait] = useState<Portrait>(initialData.portrait);
@@ -231,35 +274,84 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
     }
   };
 
-  // Desktop Study chat send
-  const handleSendDesktopChat = async (e: React.FormEvent) => {
+  // Desktop Study chat send — streaming
+  const handleSendDesktopChat = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || isStreaming) return;
 
     const userText = chatInput.trim();
     setChatInput('');
+    setDismissedInsight(false);
 
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMsg: ChatMessage = { id: `duser_${Date.now()}`, sender: 'user', text: userText, time };
     setDesktopChatLogs(prev => [...prev, userMsg]);
 
-    const res = await fetchJson('/api/reasoner', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: userText, session: 'desktop' })
-    });
+    // Try streaming first
+    setIsStreaming(true);
+    streamingRef.current = '';
+    setStreamingText('');
 
-    if (res && res.reply) {
-      setDesktopChatLogs(prev => [...prev, {
-        id: `dwilliam_${Date.now()}`,
-        sender: 'william',
-        text: res.reply,
-        time
-      }]);
-      const apiPortrait = await fetchJson('/api/portrait');
-      if (apiPortrait) setPortrait(apiPortrait);
+    try {
+      const res = await fetch(`${API_URL}/api/reasoner/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: userText, session: 'desktop' })
+      });
+
+      if (res.ok && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'token') {
+                streamingRef.current += data.token;
+                setStreamingText(streamingRef.current);
+              } else if (data.type === 'insights' && data.insights?.length > 0) {
+                setActiveInsights(data.insights);
+              } else if (data.type === 'done') {
+                const finalText = data.fullReply || streamingRef.current;
+                setDesktopChatLogs(prev => [...prev, {
+                  id: `dwilliam_${Date.now()}`, sender: 'william', text: finalText, time
+                }]);
+                setStreamingText('');
+                streamingRef.current = '';
+                const apiPortrait = await fetchJson('/api/portrait');
+                if (apiPortrait) setPortrait(apiPortrait);
+              }
+            } catch (_) {}
+          }
+        }
+      } else {
+        throw new Error('Stream unavailable');
+      }
+    } catch (_) {
+      // Fallback to non-streaming
+      const res = await fetchJson('/api/reasoner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: userText, session: 'desktop' })
+      });
+      if (res && res.reply) {
+        setDesktopChatLogs(prev => [...prev, { id: `dwilliam_${Date.now()}`, sender: 'william', text: res.reply, time }]);
+        if (res.insights?.length > 0) setActiveInsights(res.insights);
+      }
+    } finally {
+      setIsStreaming(false);
+      setStreamingText('');
     }
-  };
+  }, [chatInput, isStreaming, API_URL]);
 
   // Mobile Chat send
   const handleSendMobileChat = async (e: React.FormEvent) => {
@@ -711,12 +803,55 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
               Room Library
             </button>
             <button 
+              className={`glass-nav-item ${activeTab === 'world' ? 'active' : ''}`}
+              onClick={() => { setActiveTab('world'); if (!worldModel) fetchJson('/api/world-model').then(d => d && setWorldModel(d)); }}
+            >
+              World
+            </button>
+            <button 
               className={`glass-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
               onClick={() => setActiveTab('settings')}
             >
-              Room Settings
+              Settings
             </button>
           </div>
+
+          {/* Insight Card — slides in from bottom when patterns detected */}
+          <AnimatePresence>
+            {activeInsights.length > 0 && !dismissedInsight && (
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.97 }}
+                transition={{ duration: 0.3 }}
+                style={{
+                  position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+                  zIndex: 800, background: 'var(--bg-surface)', border: '1px solid var(--border-hairline)',
+                  borderRadius: '16px', padding: '16px 20px', maxWidth: '480px', width: '90%',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
+                      William noticed
+                    </span>
+                    {activeInsights.slice(0, 2).map((ins, i) => (
+                      <p key={i} style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '6px', lineHeight: 1.5 }}>
+                        {ins.detail}
+                      </p>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setDismissedInsight(true)}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', fontSize: '1rem', flexShrink: 0 }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -1013,6 +1148,73 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                 </div>
               )}
 
+              {/* World tab — knowledge graph */}
+              {activeTab === 'world' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: 500 }}>World Model</h3>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Entities and relationships William has learned from your conversations.
+                      </p>
+                    </div>
+                    <button className="zen-btn-outline" style={{ fontSize: '0.75rem', padding: '6px 14px', borderRadius: '12px' }} onClick={() => fetchJson('/api/world-model').then(d => d && setWorldModel(d))}>
+                      Refresh
+                    </button>
+                  </div>
+
+                  {worldModel && worldModel.nodes.length === 0 && (
+                    <div className="dashboard-card" style={{ textAlign: 'center', padding: '40px' }}>
+                      <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No entities learned yet. Start a conversation and William will begin mapping your world.</p>
+                    </div>
+                  )}
+
+                  {worldModel && worldModel.nodes.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+                      {worldModel.nodes.sort((a, b) => b.confidence - a.confidence).map(node => (
+                        <div key={node.id} className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                              <span style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>{node.type}</span>
+                              <h4 style={{ fontSize: '1rem', fontWeight: 500, marginTop: '2px' }}>{node.label}</h4>
+                            </div>
+                            <div style={{ 
+                              fontSize: '0.6875rem', fontWeight: 700,
+                              color: node.confidence > 0.8 ? 'var(--text-primary)' : node.confidence > 0.5 ? 'var(--text-secondary)' : 'var(--text-muted)',
+                              background: 'var(--bg-chrome)', borderRadius: '8px', padding: '2px 8px'
+                            }}>
+                              {Math.round(node.confidence * 100)}%
+                            </div>
+                          </div>
+                          {node.description && (
+                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{node.description}</p>
+                          )}
+                          {worldModel.edges
+                            .filter(e => e.fromId === node.id || e.toId === node.id)
+                            .slice(0, 2)
+                            .map(edge => {
+                              const otherId = edge.fromId === node.id ? edge.toId : edge.fromId;
+                              const other = worldModel.nodes.find(n => n.id === otherId);
+                              return other ? (
+                                <span key={edge.id} style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                                  ↔ {edge.relation.replace(/_/g, ' ')} "{other.label}"
+                                </span>
+                              ) : null;
+                            })
+                          }
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!worldModel && (
+                    <div className="dashboard-card" style={{ textAlign: 'center', padding: '40px' }}>
+                      <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Loading world model...</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Settings tab */}
               {activeTab === 'settings' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
@@ -1080,7 +1282,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                   className="floating-prompt-input"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Ask William anything or reflect on your day..."
+                  placeholder={isStreaming ? 'William is thinking...' : 'Ask William anything or reflect on your day...'}
+                  disabled={isStreaming}
                 />
                 <button 
                   type="submit" 
@@ -1169,18 +1372,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
         </span>
 
         {(deviceType as string) === 'desktop' && (
-          <div className="zen-nav-links">
-            {(['home', 'portrait', 'journeys', 'library', 'settings'] as const).map((tab) => (
+        <div className="zen-nav-links">
+            {(['home', 'portrait', 'journeys', 'library', 'world', 'settings'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => {
                   setActiveTab(tab);
                   setIsReflecting(false);
+                  if (tab === 'world' && !worldModel) fetchJson('/api/world-model').then(d => d && setWorldModel(d));
                 }}
                 className={`zen-nav-link ${activeTab === tab ? 'active' : ''}`}
                 style={{ background: 'none', border: 'none', textTransform: 'capitalize' }}
               >
-                {tab === 'home' ? 'Study' : tab}
+                {tab === 'home' ? 'Study' : tab === 'world' ? 'World' : tab}
               </button>
             ))}
           </div>
@@ -1403,6 +1607,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                               </div>
                             );
                           })}
+
+                          {/* Streaming bubble */}
+                          {isStreaming && (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '4px' }}>William • now</span>
+                              <div style={{ 
+                                color: 'var(--text-primary)', maxWidth: '80%', lineHeight: 1.5,
+                                background: 'var(--focus-glow)', padding: '12px 16px', borderRadius: '8px',
+                                fontSize: '0.9375rem', fontFamily: 'var(--font-sans)'
+                              }}>
+                                {streamingText || <span style={{ opacity: 0.5 }}>thinking…</span>}
+                                <span style={{ animation: 'cursor-blink 1s steps(1) infinite', marginLeft: '2px' }}>|</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Textbox input */}
@@ -1412,11 +1631,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                             className="zen-input"
                             value={chatInput}
                             onChange={(e) => setChatInput(e.target.value)}
-                            placeholder="Simply talk, explore systems, or log advice..."
+                            placeholder={isStreaming ? 'William is thinking...' : 'Simply talk, explore systems, or log advice...'}
                             style={{ border: 'none', borderBottom: 'none', flex: 1 }}
+                            disabled={isStreaming}
                           />
-                          <button className="zen-btn" type="submit" disabled={!chatInput.trim()}>
-                            Send
+                          <button className="zen-btn" type="submit" disabled={!chatInput.trim() || isStreaming}>
+                            {isStreaming ? '...' : 'Send'}
                           </button>
                         </form>
                       </div>

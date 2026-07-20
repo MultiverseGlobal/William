@@ -765,7 +765,7 @@ export default function HomeScreen() {
                 onPress={() => setCaptureType('speak')}
               >
                 <View style={styles.voiceRecordDot} />
-                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '600', letterSpacing: 0.5 }}>START VOICE WALK</Text>
+                <Text style={{ color: '#000000', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }}>START VOICE WALK</Text>
               </TouchableOpacity>
 
             </View>
@@ -1163,11 +1163,11 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   navBar: {
-    height: 64,
+    height: 68,
     borderTopWidth: 1,
-    borderTopColor: '#27272a',
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
     flexDirection: 'row',
-    backgroundColor: '#09090b',
+    backgroundColor: 'rgba(9, 9, 11, 0.95)',
   },
   navItem: {
     flex: 1,
@@ -1386,29 +1386,35 @@ const styles = StyleSheet.create({
     elevation: 4
   },
   pillButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#18181b',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderWidth: 1,
-    borderColor: '#27272a'
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#000000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2
   },
   pillText: {
-    color: '#a1a1aa',
+    color: '#e4e4e7',
     fontSize: 12,
-    fontWeight: '500'
+    fontWeight: '600'
   },
   voiceRecordBar: {
     width: '100%',
-    height: 52,
-    backgroundColor: '#1c1917',
-    borderWidth: 1,
-    borderColor: '#44403c',
-    borderRadius: 26,
+    height: 56,
+    backgroundColor: '#ffffff',
+    borderRadius: 28,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 10
+    gap: 10,
+    shadowColor: '#ffffff',
+    shadowOpacity: 0.35,
+    shadowRadius: 15,
+    elevation: 6
   },
   voiceRecordDot: {
     width: 8,

@@ -857,3 +857,8 @@ body {
   cursor: not-allowed;
   transform: none;
 }
+
+@keyframes cursor-blink {
+  50% { opacity: 0; }
+}
+
