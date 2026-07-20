@@ -1,5 +1,5 @@
-import type { ActionRequest, ActionLog } from '@william/types';
-import { saveActionLog, updateActionStatus, saveProactiveSignal } from '../memoryAdapter';
+import type { ActionRequest, ActionLog, Journey } from '@william/types';
+import { saveActionLog, updateActionStatus, saveProactiveSignal, getJourneys, saveJourney } from '../memoryAdapter';
 
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
@@ -163,9 +163,36 @@ async function _coordinateAtlas(_actionId: string, req: ActionRequest): Promise<
 }
 
 async function _organizeProject(_actionId: string, req: ActionRequest): Promise<void> {
-  // Stored in action_log for now; future: update journey/memory graph node
   const { projectName, action: projectAction, notes } = req.payload;
   console.log(`[Action] Organize project: "${projectName}" → ${projectAction}. Notes: ${notes || 'none'}`);
+
+  const journeys = await getJourneys();
+  const matched = journeys.find(j => j.title.toLowerCase().includes(projectName.toLowerCase()));
+
+  if (matched) {
+    matched.timeline = [
+      { date: new Date().toLocaleDateString(), text: `Action [${projectAction}]: ${notes || 'Updated project status.'}` },
+      ...matched.timeline
+    ];
+    await saveJourney(matched);
+    console.log(`[ActionDispatcher] Successfully updated journey for project "${projectName}"`);
+  } else {
+    const newJ: Journey = {
+      id: `j_${Date.now()}`,
+      category: 'mental',
+      icon: '🧠',
+      title: projectName,
+      currentState: `Action [${projectAction}]: ${notes || 'No description provided.'}`,
+      vision: 'Manage and coordinate through William companion actions.',
+      progress: 0,
+      milestones: [],
+      memories: [],
+      lessons: [],
+      timeline: [{ date: new Date().toLocaleDateString(), text: `Project initialized via action dispatch.` }]
+    };
+    await saveJourney(newJ);
+    console.log(`[ActionDispatcher] Created new journey for project "${projectName}"`);
+  }
 }
 
 async function _sendBriefing(_actionId: string, req: ActionRequest): Promise<void> {

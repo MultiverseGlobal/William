@@ -571,7 +571,31 @@ app.post('/api/observer/sync', async (req: Request, res: Response) => {
     let text = '';
 
     if (provider === 'github') {
-      text = 'Observer sync: Detected 4 git commits to Atlas development branch.';
+      const token = process.env.GITHUB_TOKEN;
+      const repo = process.env.GITHUB_REPO || 'MultiverseGlobal/William';
+      try {
+        const headers: Record<string, string> = {
+          'Accept': 'application/vnd.github+json',
+          'User-Agent': 'William-Companion-App'
+        };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        const response = await fetch(`https://api.github.com/repos/${repo}/commits?per_page=5`, { headers });
+        if (response.ok) {
+          const commits = await response.json();
+          if (Array.isArray(commits) && commits.length > 0) {
+            const list = commits.slice(0, 3).map((c: any) => `"${c.commit?.message?.split('\n')[0]}" by ${c.commit?.author?.name || 'unknown'}`).join(', ');
+            text = `Observer sync: Connected to ${repo}. Latest commits: ${list}`;
+          } else {
+            text = `Observer sync: Connected to ${repo} but found no commits.`;
+          }
+        } else {
+          text = `Observer sync: GitHub API responded with status ${response.status} for ${repo}.`;
+        }
+      } catch (err) {
+        text = `Observer sync: Failed to query GitHub repository ${repo}: ${(err as Error).message}`;
+      }
     } else {
       text = 'Observer sync: Checked calendar events and Notion spec notes.';
     }
