@@ -18,6 +18,8 @@ import {
 import type { Portrait, Journey, LibraryItem } from '@william/types';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 
 interface ChatMessage {
@@ -561,7 +563,10 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeContainer}>
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
-        <Text style={styles.headerLogo}>🧭 William</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Ionicons name="compass" size={20} color="#818cf8" />
+          <Text style={styles.headerLogo}>William</Text>
+        </View>
         <Text style={styles.headerState}>Walk companion • Connected</Text>
       </View>
 
@@ -808,7 +813,8 @@ export default function HomeScreen() {
                     setCaptureType('speak');
                   }}
                 >
-                  <Text style={styles.pillText}>🎤 Speak observation</Text>
+                  <Feather name="mic" size={14} color="#818cf8" style={{ marginRight: 6 }} />
+                  <Text style={styles.pillText}>Speak observation</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.pillButton} 
@@ -816,7 +822,8 @@ export default function HomeScreen() {
                     setCaptureType('write');
                   }}
                 >
-                  <Text style={styles.pillText}>⌨️ Write note</Text>
+                  <Feather name="edit-3" size={14} color="#818cf8" style={{ marginRight: 6 }} />
+                  <Text style={styles.pillText}>Write note</Text>
                 </TouchableOpacity>
               </View>
 
@@ -843,10 +850,10 @@ export default function HomeScreen() {
             </Text>
 
             {/* Widget 1: Today's Focus */}
-            <View style={[styles.card, { borderColor: '#c5a059', borderWidth: 1.5 }]}>
+            <View style={[styles.card, { borderColor: '#6366f1', borderWidth: 1.5 }]}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{ color: '#c5a059', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Focus Widget</Text>
-                <Text style={{ fontSize: 14 }}>🎯</Text>
+                <Text style={{ color: '#818cf8', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Focus Widget</Text>
+                <Feather name="target" size={16} color="#818cf8" />
               </View>
               <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '600' }}>
                 {journeys.length > 0 && journeys[0].milestones.find(m => !m.completed)?.text || 'No pending milestones'}
@@ -860,8 +867,9 @@ export default function HomeScreen() {
             <View style={[styles.card, { borderColor: '#0d9488', borderWidth: 1.5 }]}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <Text style={{ color: '#0d9488', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Insight Widget</Text>
-                <Text style={{ fontSize: 14 }}>💡</Text>
+                <Feather name="zap" size={16} color="#0d9488" />
               </View>
+
               <Text style={{ color: '#ffffff', fontSize: 13, fontStyle: 'italic', lineHeight: 18 }}>
                 {portrait && portrait.growth.length > 0 
                   ? `"${portrait.growth.slice(-1)[0]}"`
@@ -876,8 +884,9 @@ export default function HomeScreen() {
             <View style={styles.card}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <Text style={{ color: '#a1a1aa', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Unfinished Thought</Text>
-                <Text style={{ fontSize: 14 }}>📝</Text>
+                <Feather name="edit-3" size={16} color="#9ca3af" />
               </View>
+
               <Text style={{ color: '#ffffff', fontSize: 13 }}>
                 "Check Atlas architecture compilation bounds..."
               </Text>
@@ -993,7 +1002,7 @@ export default function HomeScreen() {
           style={styles.navItem}
           onPress={() => setCurrentTab('chat')}
         >
-          <Text style={[styles.navIcon, currentTab === 'chat' && styles.activeNavText]}>💬</Text>
+          <Ionicons name="chatbubbles-outline" size={20} color={currentTab === 'chat' ? '#818cf8' : '#9ca3af'} />
           <Text style={[styles.navText, currentTab === 'chat' && styles.activeNavText]}>William</Text>
         </TouchableOpacity>
 
@@ -1001,7 +1010,7 @@ export default function HomeScreen() {
           style={styles.navItem}
           onPress={() => setCurrentTab('journey')}
         >
-          <Text style={[styles.navIcon, currentTab === 'journey' && styles.activeNavText]}>🧭</Text>
+          <Ionicons name="compass-outline" size={20} color={currentTab === 'journey' ? '#818cf8' : '#9ca3af'} />
           <Text style={[styles.navText, currentTab === 'journey' && styles.activeNavText]}>Journey</Text>
         </TouchableOpacity>
 
@@ -1009,7 +1018,7 @@ export default function HomeScreen() {
           style={styles.navItem}
           onPress={() => setCurrentTab('portrait')}
         >
-          <Text style={[styles.navIcon, currentTab === 'portrait' && styles.activeNavText]}>📖</Text>
+          <Ionicons name="book-outline" size={20} color={currentTab === 'portrait' ? '#818cf8' : '#9ca3af'} />
           <Text style={[styles.navText, currentTab === 'portrait' && styles.activeNavText]}>Portrait</Text>
         </TouchableOpacity>
 
@@ -1017,7 +1026,7 @@ export default function HomeScreen() {
           style={styles.navItem}
           onPress={() => setCurrentTab('today')}
         >
-          <Text style={[styles.navIcon, currentTab === 'today' && styles.activeNavText]}>⚡</Text>
+          <Ionicons name="flash-outline" size={20} color={currentTab === 'today' ? '#818cf8' : '#9ca3af'} />
           <Text style={[styles.navText, currentTab === 'today' && styles.activeNavText]}>Today</Text>
         </TouchableOpacity>
 
@@ -1025,10 +1034,11 @@ export default function HomeScreen() {
           style={styles.navItem}
           onPress={() => setCurrentTab('widgets')}
         >
-          <Text style={[styles.navIcon, currentTab === 'widgets' && styles.activeNavText]}>📱</Text>
+          <Ionicons name="grid-outline" size={20} color={currentTab === 'widgets' ? '#818cf8' : '#9ca3af'} />
           <Text style={[styles.navText, currentTab === 'widgets' && styles.activeNavText]}>Widgets</Text>
         </TouchableOpacity>
       </View>
+
 
     </SafeAreaView>
   );

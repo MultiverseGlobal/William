@@ -5,6 +5,10 @@ import { GoalConstellation } from './GoalConstellation';
 import { CognitiveMap } from './CognitiveMap';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { MemoryNode, MemoryEdge } from '@william/types';
+import { 
+  Sparkles, Brain, Compass, BookOpen, Target, Zap, Radio, MessageSquare 
+} from 'lucide-react';
+
 
 
 interface DashboardProps {
@@ -1358,11 +1362,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
 
               {/* Quick-action pill tray — flies UP when ⊕ is tapped */}
               <div className={`quick-actions-tray${showQuickActions ? ' open' : ''}`}>
-                <button className="quick-action-pill" onClick={() => { setChatInput("Let's reflect on today's focus."); setShowQuickActions(false); }}>📝 Reflect</button>
-                <button className="quick-action-pill" onClick={() => { setChatInput("Evolve my portrait beliefs based on today."); setShowQuickActions(false); }}>🔮 Evolve portrait</button>
-                <button className="quick-action-pill" onClick={() => { setChatInput("What patterns are you noticing in me?"); setShowQuickActions(false); }}>📡 Patterns</button>
-                <button className="quick-action-pill" onClick={() => { setChatInput("What should I focus on right now?"); setShowQuickActions(false); }}>🎯 Focus</button>
+                <button className="quick-action-pill" onClick={() => { setChatInput("Let's reflect on today's focus."); setShowQuickActions(false); }}>
+                  <Sparkles size={13} style={{ marginRight: 6 }} /> Reflect
+                </button>
+                <button className="quick-action-pill" onClick={() => { setChatInput("Evolve my portrait beliefs based on today."); setShowQuickActions(false); }}>
+                  <Brain size={13} style={{ marginRight: 6 }} /> Evolve portrait
+                </button>
+                <button className="quick-action-pill" onClick={() => { setChatInput("What patterns are you noticing in me?"); setShowQuickActions(false); }}>
+                  <Radio size={13} style={{ marginRight: 6 }} /> Patterns
+                </button>
+                <button className="quick-action-pill" onClick={() => { setChatInput("What should I focus on right now?"); setShowQuickActions(false); }}>
+                  <Target size={13} style={{ marginRight: 6 }} /> Focus
+                </button>
               </div>
+
 
               <form onSubmit={handleSendDesktopChat} className="floating-prompt-bar">
                 {/* ⊕ expand button */}
@@ -2617,22 +2630,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
               {/* Bottom Navigation Mock */}
               <div style={{ position: 'absolute', bottom: 0, insetInline: 0, height: 50, background: '#18181b', borderTop: '1px solid #27272a', display: 'flex', zIndex: 10 }}>
                 <button onClick={() => setMobileTab('chat')} style={{ flex: 1, background: 'transparent', border: 'none', color: mobileTab === 'chat' ? '#ffffff' : '#71717a', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                  <span style={{ fontSize: '1rem' }}>💬</span>
+                  <MessageSquare size={16} />
                   <span style={{ fontSize: '0.5625rem' }}>William</span>
                 </button>
                 <button onClick={() => setMobileTab('journey')} style={{ flex: 1, background: 'transparent', border: 'none', color: mobileTab === 'journey' ? '#ffffff' : '#71717a', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                  <span style={{ fontSize: '1rem' }}>🧭</span>
+                  <Compass size={16} />
                   <span style={{ fontSize: '0.5625rem' }}>Journey</span>
                 </button>
                 <button onClick={() => setMobileTab('portrait')} style={{ flex: 1, background: 'transparent', border: 'none', color: mobileTab === 'portrait' ? '#ffffff' : '#71717a', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                  <span style={{ fontSize: '1rem' }}>📖</span>
+                  <BookOpen size={16} />
                   <span style={{ fontSize: '0.5625rem' }}>Portrait</span>
                 </button>
                 <button onClick={() => setMobileTab('today')} style={{ flex: 1, background: 'transparent', border: 'none', color: mobileTab === 'today' ? '#ffffff' : '#71717a', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                  <span style={{ fontSize: '1rem' }}>⚡</span>
+                  <Zap size={16} />
                   <span style={{ fontSize: '0.5625rem' }}>Today</span>
                 </button>
               </div>
+
 
             </motion.div>
           )}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { ConstitutionRule, ContextState, Integration, Portrait, Journey, LibraryItem } from '@william/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, Send, Brain, Compass, ArrowRight } from 'lucide-react';
+
 
 interface OnboardingProps {
   onComplete: (data: {
@@ -32,7 +34,6 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [identity, setIdentity] = useState<string>('');
   const [values, setValues] = useState<string>('');
   const [building, setBuilding] = useState<string>('');
-  const [burdens, setBurdens] = useState<string>('');
   const [strengths, setStrengths] = useState<string>('');
   const [struggles, setStruggles] = useState<string>('');
   const [principles, setPrinciples] = useState<string>('');
@@ -48,27 +49,23 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const runIntro = async () => {
       setIsTyping(true);
       
-      // Step 0: Hello.
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 800));
       setMessages((prev) => [...prev, { id: 'm0', sender: 'william', text: 'Hello.' }]);
       
-      // Step 1: I'm William.
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 1600));
       setMessages((prev) => [...prev, { id: 'm1', sender: 'william', text: "I'm William." }]);
       
-      // Step 2: Philosophy intro.
-      await new Promise((r) => setTimeout(r, 2200));
+      await new Promise((r) => setTimeout(r, 1800));
       setMessages((prev) => [
         ...prev, 
         { 
           id: 'm2', 
           sender: 'william', 
-          text: 'Before I can help you become who you want to become, I need to understand who you are.' 
+          text: 'Before I can support your vision and optimize your cognitive flow, I need to know who you are.' 
         }
       ]);
       
-      // Step 3: Ask Name.
-      await new Promise((r) => setTimeout(r, 2500));
+      await new Promise((r) => setTimeout(r, 2000));
       setMessages((prev) => [
         ...prev, 
         { 
@@ -79,7 +76,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       ]);
       
       setIsTyping(false);
-      setCurrentStep(1); // Ready for name input
+      setCurrentStep(1);
     };
 
     runIntro();
@@ -92,69 +89,60 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     const userText = inputText.trim();
     setInputText('');
 
-    // Add user message to log
     setMessages((prev) => [...prev, { id: `u_${Date.now()}`, sender: 'user', text: userText }]);
     setIsTyping(true);
 
-    // Pause to simulate listening and thinking
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 1000));
 
-    // Handle flow based on steps
     let nextQuestion = '';
     
     switch (currentStep) {
-      case 1: // Name answered
+      case 1:
         setUserName(userText);
-        nextQuestion = `Nice to meet you, ${userText}. Who are you trying to become?`;
+        nextQuestion = `Welcome, ${userText}. Who are you striving to become?`;
         setCurrentStep(2);
         break;
 
-      case 2: // Identity answered
+      case 2:
         setIdentity(userText);
-        nextQuestion = 'Why does that matter to you?';
+        nextQuestion = 'What core values guide your decisions?';
         setCurrentStep(3);
         break;
 
-      case 3: // Values answered
+      case 3:
         setValues(userText);
-        nextQuestion = 'What are you building?';
+        nextQuestion = 'What primary project or vision are you building right now?';
         setCurrentStep(4);
         break;
 
-      case 4: // Projects/building answered
+      case 4:
         setBuilding(userText);
-        nextQuestion = 'What burdens are you currently carrying?';
+        nextQuestion = 'What are your greatest core strengths?';
         setCurrentStep(5);
         break;
 
-      case 5: // Burdens answered
-        setBurdens(userText);
-        nextQuestion = 'What strengths do you rely on most?';
+      case 5:
+        setStrengths(userText);
+        nextQuestion = 'Where do you struggle or lose focus most?';
         setCurrentStep(6);
         break;
 
-      case 6: // Strengths answered
-        setStrengths(userText);
-        nextQuestion = 'Where do you struggle most?';
+      case 6:
+        setStruggles(userText);
+        nextQuestion = 'What non-negotiable principles rule your life?';
         setCurrentStep(7);
         break;
 
-      case 7: // Struggles answered
-        setStruggles(userText);
-        nextQuestion = 'What principles guide your decisions?';
+      case 7:
+        setPrinciples(userText);
+        nextQuestion = 'Finally, what gives your daily effort meaning?';
         setCurrentStep(8);
         break;
 
-      case 8: // Principles answered
-        setPrinciples(userText);
-        nextQuestion = 'What gives your life meaning?';
-        setCurrentStep(9);
-        break;
-
-      case 9: // Meaning answered
+      case 8:
         setMeaning(userText);
-        nextQuestion = `Thank you, ${userName}. I have assembled the first brushstrokes of your Portrait. Let's begin our journey.`;
-        setCurrentStep(10); // Finished!
+        nextQuestion = `Thank you, ${userName}. Your cognitive profile and initial memory nodes are ready.`;
+        setCurrentStep(9);
         break;
 
       default:
@@ -166,170 +154,87 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const handleComplete = () => {
-    // Construct refined Portrait structure from onboarding conversation answers
     const portraitData: Portrait = {
-      name: userName,
-      identity: identity,
-      values: `${values}. Meaning: ${meaning}.`,
-      principles: principles,
-      strengths: strengths,
-      blind_spots: `Burdens: ${burdens}. Struggles: ${struggles}.`,
-      dreams: building,
-      relationships: 'Companion circle',
-      decision_patterns: ['Prefers system redesign over raw motivation'],
-      growth: ['Portrait established through initial dialogue.'],
+      name: userName || 'William',
+      identity: identity || 'Architect of high-agency systems',
+      values: values || 'Autonomy, mastery, relentless iteration',
+      principles: principles || 'Focus on leverage; systems over willpower',
+      strengths: strengths || 'System design, rapid execution',
+      blind_spots: struggles || 'Over-engineering early solutions',
+      dreams: building || 'Build seamless intelligence systems',
+      relationships: meaning || 'Core collaborators and family',
+      decision_patterns: ['Prefers top-down clarity', 'Empirical code validation'],
+      growth: ['Transitioning from manual execution to system orchestration'],
       cognitiveProfile: {
-        problemSolvingStyle: 'System-builder (prefers architectural foundations over spontaneous routines)',
-        temporalBias: 'Underestimates 3-month compound growth; overestimates 1-week execution limits',
-        attentionSpan: 'High-intensity deep work blocks, susceptible to rapid burnout if rest is neglected',
-        decisionHeuristics: 'Prefers writing structured code to resolve ambiguity rather than discussing specs'
+        problemSolvingStyle: 'System-builder',
+        temporalBias: 'Strategic 3-month compounding focus',
+        attentionSpan: '90-minute high-intensity deep work blocks',
+        decisionHeuristics: 'Code-first verification'
       },
       activeBeliefs: [
-        {
-          belief: 'I must build complete foundations before exposing ideas.',
-          strength: 0.8,
-          lastTested: 'Today',
-          evolution: 'Initial baseline seeded during onboarding.'
+        { 
+          belief: 'Environment design beats raw willpower', 
+          strength: 0.95, 
+          lastTested: new Date().toISOString(), 
+          evolution: 'Established during onboarding' 
         }
       ]
     };
 
-    // Initialize 5 primary Journeys
     const initialJourneys: Journey[] = [
       {
-        id: 'j1',
-        category: 'mental',
-        icon: '🧠',
-        title: 'Mental Journey',
-        currentState: 'Beginning strategy & presence check-ins.',
-        vision: 'Clarity, patience, and high cognitive agency.',
-        milestones: [
-          { id: 'm1_1', text: 'Maintain daily morning strategy block', completed: false },
-          { id: 'm1_2', text: 'Reflect on evening decisions', completed: false }
-        ],
-        memories: ['Onboarding conversation with William established'],
-        lessons: ['Focus on systems rather than relying on sheer willpower.'],
-        progress: 20,
-        timeline: [{ date: 'Today', text: 'Started mental companion journey with William' }]
-      },
-      {
-        id: 'j2',
-        category: 'physical',
-        icon: '💪',
-        title: 'Physical Journey',
-        currentState: 'Struggling to keep routines during high-stress weeks.',
-        vision: 'Restored workout pacing and daily physical energy.',
-        milestones: [
-          { id: 'm2_1', text: 'Run 3 times a week', completed: false },
-          { id: 'm2_2', text: 'Bedtime wind-down by 10:30 PM', completed: false }
-        ],
-        memories: ['Recognized that stress breaks physical routines'],
-        lessons: ['One meaningful step in each important area is enough.'],
-        progress: 15,
-        timeline: [{ date: 'Today', text: 'Set baseline physical habits' }]
-      },
-      {
-        id: 'j3',
-        category: 'financial',
-        icon: '💰',
-        title: 'Financial Journey',
-        currentState: 'Constructing independent products.',
-        vision: 'Long-term financial system decoupling time from income.',
-        milestones: [
-          { id: 'm3_1', text: 'Launch version 1 of project', completed: false },
-          { id: 'm3_2', text: 'Acquire first 3 clients', completed: false }
-        ],
-        memories: ['Began constructing Atlas project'],
-        lessons: ['Focus engineering blocks on what moves the client metrics'],
-        progress: 10,
-        timeline: [{ date: 'Today', text: 'Began strategic tracking of projects' }]
-      },
-      {
-        id: 'j4',
-        category: 'relationships',
-        icon: '❤️',
-        title: 'Relationships Journey',
-        currentState: 'Balanced and intentional connections.',
-        vision: 'Deepening family bonds and peer partner dialogue.',
-        milestones: [
-          { id: 'm4_1', text: 'Call Mum weekly', completed: false },
-          { id: 'm4_2', text: 'Support founder peers', completed: false }
-        ],
-        memories: ['Admitted that no human should have to face limitations alone'],
-        lessons: ['Preserve human agency while sharing cognitive burden'],
-        progress: 30,
-        timeline: [{ date: 'Today', text: 'Committed to weekly check-ins' }]
-      },
-      {
-        id: 'j5',
+        id: `j_${Date.now()}_1`,
         category: 'legacy',
-        icon: '🌍',
-        title: 'Legacy Journey',
-        currentState: 'Designing systems for human actualization.',
-        vision: 'Empowering self-becoming rather than corporate checklists.',
+        icon: 'Target',
+        title: building ? building.substring(0, 30) : 'Core Project Execution',
+        currentState: 'Initializing project framework with William companion support.',
+        vision: building || 'Complete primary platform development',
         milestones: [
-          { id: 'm5_1', text: 'Deliver the study experience interface', completed: false },
-          { id: 'm5_2', text: 'Formulate a tool for companion growth', completed: false }
+          { id: 'm1', text: 'Initial Setup', completed: true },
+          { id: 'm2', text: 'Core Feature Integration', completed: false },
+          { id: 'm3', text: 'Production Launch', completed: false }
         ],
-        memories: ['Conceived companion system for human actualization'],
-        lessons: ['Transform the operator, do not merely complete tasks.'],
-        progress: 5,
-        timeline: [{ date: 'Today', text: 'Conceptualized legacy milestone tracks' }]
+        memories: ['Onboarding complete'],
+        lessons: ['Focus on minimal viable leverage points'],
+        progress: 15,
+        timeline: [{ date: new Date().toLocaleDateString(), text: 'Project initialized during onboarding' }]
+      },
+      {
+        id: `j_${Date.now()}_2`,
+        category: 'mental',
+        icon: 'Brain',
+        title: 'Cognitive & Focus Optimization',
+        currentState: 'Establishing zero-distraction deep work loops.',
+        vision: 'Achieve effortless deep flow with zero cognitive friction.',
+        milestones: [
+          { id: 'm4', text: 'Setup Focus Mode', completed: true },
+          { id: 'm5', text: 'Track daily cognitive energy', completed: false }
+        ],
+        memories: ['Profile configured'],
+        lessons: ['Protect high-energy work blocks'],
+        progress: 30,
+        timeline: [{ date: new Date().toLocaleDateString(), text: 'Focus architecture established' }]
       }
     ];
 
-    // Initialize 4 primary Library items
     const initialLibrary: LibraryItem[] = [
       {
         id: 'l1',
-        type: 'book',
-        title: 'Meditations',
-        author: 'Marcus Aurelius',
-        content: 'You have power over your mind - not outside events. Realize this, and you will find strength.',
-        dateAdded: 'Today',
-        tags: ['Philosophy', 'Stoicism']
-      },
-      {
-        id: 'l2',
-        type: 'quote',
-        title: 'Stoic Obstacles',
-        content: 'The obstacle in the path becomes the path. Never forget that within every obstacle is an opportunity to improve our condition.',
-        dateAdded: 'Today',
-        tags: ['Stoicism', 'Strategy']
-      },
-      {
-        id: 'l3',
         type: 'lesson',
         title: 'Systems Over Motivation',
-        content: 'When routines consistently break after periods of stress, redesign your system instead of relying on motivation.',
-        dateAdded: 'Today',
-        tags: ['Systems', 'Self-Actualization']
-      },
-      {
-        id: 'l4',
-        type: 'idea',
-        title: 'Core Philosophy',
-        content: 'Every human is limited. No human should have to face those limitations alone.',
-        dateAdded: 'Today',
-        tags: ['Philosophy', 'William']
+        author: 'William',
+        content: 'When routines break after periods of high stress, redesign your environment instead of relying on raw motivation.',
+        dateAdded: new Date().toLocaleDateString(),
+        tags: ['Systems', 'Focus']
       }
     ];
 
-    // Initialize clean rules
     const initialRules: ConstitutionRule[] = [
       { 
         id: 'r1', 
         user_id: 'u1', 
-        rule_text: principles.substring(0, 100) || 'Act with alignment to principles.', 
+        rule_text: principles.substring(0, 100) || 'Act in alignment with core principles.', 
         category: 'priority', 
-        is_active: true, 
-        created_at: new Date().toISOString() 
-      },
-      { 
-        id: 'r2', 
-        user_id: 'u1', 
-        rule_text: 'Reduce cognitive load, prioritize breathing room.', 
-        category: 'recovery', 
         is_active: true, 
         created_at: new Date().toISOString() 
       }
@@ -348,7 +253,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
     const integrations: Integration[] = [
       { id: 'i1', user_id: 'u1', provider: 'google', connected: false, connected_at: new Date().toISOString(), last_synced_at: null },
-      { id: 'i2', user_id: 'u1', provider: 'notion', connected: false, connected_at: new Date().toISOString(), last_synced_at: null }
+      { id: 'i2', user_id: 'u1', provider: 'github', connected: true, connected_at: new Date().toISOString(), last_synced_at: new Date().toISOString() }
     ];
 
     onComplete({
@@ -363,127 +268,259 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   return (
-    <div className="zen-container" style={{ justifyContent: 'space-between', padding: '40px 24px', backgroundColor: '#09090b', color: '#f4f4f5' }}>
-      
-      {/* Scrollable Conversation container */}
-      <div 
-        style={{ 
-          width: '100%', 
-          maxWidth: '560px', 
-          flex: 1, 
-          overflowY: 'auto', 
-          padding: '20px 0', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '24px',
-          scrollBehavior: 'smooth'
+    <div style={{
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: '#030712',
+      color: '#f9fafb',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
+    }}>
+      {/* Ambient background glow mesh */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        left: '20%',
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(0, 0, 0, 0) 70%)',
+        filter: 'blur(60px)',
+        pointerEvents: 'none'
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '15%',
+        right: '25%',
+        width: '450px',
+        height: '450px',
+        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, rgba(0, 0, 0, 0) 70%)',
+        filter: 'blur(70px)',
+        pointerEvents: 'none'
+      }} />
+
+      {/* Main Glass Card */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        style={{
+          width: '100%',
+          maxWidth: '640px',
+          height: '80vh',
+          maxHeight: '750px',
+          background: 'rgba(17, 24, 39, 0.65)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '24px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 10
         }}
       >
-        <AnimatePresence>
-          {messages.map((msg, index) => {
-            const isLatest = index === messages.length - 1;
-            const isWilliam = msg.sender === 'william';
-            
-            return (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: isLatest ? 1 : 0.4, y: 0 }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
+        {/* Glass Card Header */}
+        <div style={{
+          padding: '20px 28px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'rgba(3, 7, 18, 0.4)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 15px rgba(99, 102, 241, 0.4)'
+            }}>
+              <Compass size={18} color="#ffffff" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '0.9375rem', fontWeight: 600, letterSpacing: '-0.01em', margin: 0 }}>William Companion</h2>
+              <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Cognitive Onboarding</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {Array.from({ length: 10 }).map((_, idx) => (
+              <div 
+                key={idx}
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: isWilliam ? 'flex-start' : 'flex-end',
-                  width: '100%',
-                  gap: '4px'
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: idx < currentStep ? '#6366f1' : 'rgba(255, 255, 255, 0.15)',
+                  transition: 'all 0.3s ease'
                 }}
-              >
-                {isWilliam && (
-                  <span style={{ fontSize: '0.6875rem', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.05em' }}>
-                    William
-                  </span>
-                )}
-                <div
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Scrollable Conversation area */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '28px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+          scrollBehavior: 'smooth'
+        }}>
+          <AnimatePresence>
+            {messages.map((msg, index) => {
+              const isLatest = index === messages.length - 1;
+              const isWilliam = msg.sender === 'william';
+              
+              return (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: isLatest ? 1 : 0.6, y: 0 }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
                   style={{
-                    fontWeight: 300,
-                    lineHeight: 1.5,
-                    maxWidth: '85%',
-                    color: isWilliam ? '#f4f4f5' : '#a1a1aa',
-                    whiteSpace: 'pre-wrap',
-                    fontFamily: isWilliam ? 'var(--font-sans)' : 'var(--font-cursive)',
-                    fontSize: isWilliam ? '1.0625rem' : '1.375rem'
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: isWilliam ? 'flex-start' : 'flex-end',
+                    width: '100%'
                   }}
                 >
-                  {msg.text}
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+                  {isWilliam && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                      <Brain size={12} color="#818cf8" />
+                      <span style={{ fontSize: '0.6875rem', textTransform: 'uppercase', color: '#818cf8', fontWeight: 600, letterSpacing: '0.05em' }}>
+                        William
+                      </span>
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      padding: '14px 18px',
+                      borderRadius: isWilliam ? '4px 18px 18px 18px' : '18px 18px 4px 18px',
+                      backgroundColor: isWilliam ? 'rgba(31, 41, 55, 0.7)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                      background: isWilliam ? 'rgba(31, 41, 55, 0.6)' : '#6366f1',
+                      border: isWilliam ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
+                      color: '#ffffff',
+                      lineHeight: 1.5,
+                      maxWidth: '85%',
+                      fontSize: '0.9375rem',
+                      fontWeight: 400,
+                      boxShadow: isWilliam ? 'none' : '0 4px 12px rgba(99, 102, 241, 0.3)'
+                    }}
+                  >
+                    {msg.text}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
 
-        {isTyping && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            style={{ display: 'flex', gap: '4px', padding: '8px 0' }}
-          >
-            <span style={{ fontSize: '0.75rem', color: '#a1a1aa', fontStyle: 'italic' }}>William is thinking...</span>
-          </motion.div>
-        )}
-
-        <div ref={chatEndRef} />
-      </div>
-
-      {/* Input / Control Panel at bottom */}
-      <div style={{ width: '100%', maxWidth: '560px', marginTop: '24px' }}>
-        {currentStep < 10 ? (
-          <form onSubmit={handleSendMessage} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <input
-              type="text"
-              className="zen-input"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={currentStep === 0 ? "Wait for William..." : "Speak your mind..."}
-              disabled={currentStep === 0 || isTyping}
-              autoFocus
-              style={{
-                borderBottomColor: 'rgba(255,255,255,0.1)',
-                color: '#ffffff',
-                caretColor: '#ffffff',
-                fontSize: '1.125rem'
-              }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', color: 'rgba(255,255,255,0.3)' }}>
-              <span>Onboarding Conversation</span>
-              <span>Press Enter to respond</span>
-            </div>
-          </form>
-        ) : (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}
-          >
-            <button 
-              className="zen-btn" 
-              onClick={handleComplete}
-              style={{ 
-                width: '100%', 
-                padding: '14px 0', 
-                backgroundColor: '#ffffff', 
-                color: '#09090b', 
-                fontWeight: 600,
-                borderRadius: '8px',
-                fontSize: '0.9375rem'
-              }}
+          {isTyping && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0', color: '#9ca3af', fontSize: '0.8125rem' }}
             >
-              Let's begin.
-            </button>
-          </motion.div>
-        )}
-      </div>
+              <Sparkles size={14} className="animate-spin" color="#818cf8" />
+              <span>William is listening...</span>
+            </motion.div>
+          )}
 
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Input Panel */}
+        <div style={{
+          padding: '20px 28px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+          background: 'rgba(3, 7, 18, 0.6)'
+        }}>
+          {currentStep < 10 ? (
+            <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder={currentStep === 0 ? "Wait for William..." : "Type your response..."}
+                disabled={currentStep === 0 || isTyping}
+                autoFocus
+                style={{
+                  flex: 1,
+                  backgroundColor: 'rgba(17, 24, 39, 0.8)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  color: '#ffffff',
+                  fontSize: '0.9375rem',
+                  outline: 'none'
+                }}
+              />
+              <button
+                type="submit"
+                disabled={!inputText.trim() || isTyping}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  backgroundColor: inputText.trim() && !isTyping ? '#6366f1' : 'rgba(255, 255, 255, 0.08)',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: inputText.trim() && !isTyping ? 'pointer' : 'default',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Send size={18} />
+              </button>
+            </form>
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <button 
+                onClick={handleComplete}
+                style={{ 
+                  width: '100%', 
+                  padding: '14px 0', 
+                  background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', 
+                  color: '#ffffff', 
+                  fontWeight: 600,
+                  borderRadius: '12px',
+                  fontSize: '0.9375rem',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)'
+                }}
+              >
+                <span>Enter William Companion</span>
+                <ArrowRight size={18} />
+              </button>
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 };
