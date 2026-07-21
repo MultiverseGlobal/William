@@ -26,10 +26,11 @@ export const AuroraHeader: React.FC<AuroraHeaderProps> = ({
       };
       const datePart = now.toLocaleDateString("en-US", options);
       const timePart = now.toLocaleTimeString("en-US", {
-        hour: "02-digit",
-        minute: "02-digit",
+        hour: "2-digit",
+        minute: "2-digit",
         hour12: true,
       }).replace(" ", "");
+
       setTimeString(`${datePart} • ${timePart}`);
     };
 
