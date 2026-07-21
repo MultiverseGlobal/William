@@ -1,159 +1,161 @@
-import Database from 'better-sqlite3';
-import path from 'path';
+import { supabase } from './supabase';
 import type { Portrait, Journey, LibraryItem, ChatMessage, MemoryNode, MemoryEdge } from './types';
 
-let _db: Database.Database | null = null;
-
-export function getDb(): Database.Database {
-  if (_db) return _db;
-  const dbPath = path.resolve(process.cwd(), '../william.db');
-  _db = new Database(dbPath);
-  _db.pragma('journal_mode = WAL');
-  return _db;
-}
-
 // ─── Portrait ──────────────────────────────────────────────────────────────────
-export function getPortrait(): Portrait | null {
-  const db = getDb();
-  const row = db.prepare('SELECT * FROM portrait LIMIT 1').get() as Record<string, unknown> | undefined;
-  if (!row) return null;
+export async function getPortrait(): Promise<Portrait | null> {
+  const { data, error } = await supabase.from('portrait').select('*').eq('id', 'user_1').single();
+  if (error || !data) return null;
   return {
-    id: row.id as string,
-    name: row.name as string,
-    identity: row.identity as string,
-    values: row.values as string,
-    principles: row.principles as string,
-    strengths: row.strengths as string,
-    blind_spots: row.blind_spots as string,
-    dreams: row.dreams as string,
-    relationships: row.relationships as string,
-    decision_patterns: parseJson(row.decision_patterns as string, []),
-    growth: parseJson(row.growth as string, []),
-    cognitive_profile: parseJson(row.cognitive_profile as string, {}),
-    active_beliefs: parseJson(row.active_beliefs as string, []),
-    emotional_trends: parseJson(row.emotional_trends as string, []),
+    id: data.id,
+    name: data.name,
+    identity: data.identity,
+    values: data.values,
+    principles: data.principles,
+    strengths: data.strengths,
+    blind_spots: data.blind_spots,
+    dreams: data.dreams,
+    relationships: data.relationships,
+    decision_patterns: data.decision_patterns ?? [],
+    growth: data.growth ?? [],
+    cognitive_profile: data.cognitive_profile ?? {},
+    active_beliefs: data.active_beliefs ?? [],
+    emotional_trends: data.emotional_trends ?? [],
   };
 }
 
-export function savePortrait(p: Partial<Portrait>): void {
-  const db = getDb();
-  const existing = db.prepare('SELECT id FROM portrait LIMIT 1').get();
-  if (existing) {
-    db.prepare(`UPDATE portrait SET
-      name=?, identity=?, "values"=?, principles=?, strengths=?, blind_spots=?,
-      dreams=?, relationships=?, decision_patterns=?, growth=?, cognitive_profile=?,
-      active_beliefs=?, emotional_trends=?
-      WHERE id=?`).run(
-      p.name, p.identity, p.values, p.principles, p.strengths, p.blind_spots,
-      p.dreams, p.relationships,
-      JSON.stringify(p.decision_patterns ?? []),
-      JSON.stringify(p.growth ?? []),
-      JSON.stringify(p.cognitive_profile ?? {}),
-      JSON.stringify(p.active_beliefs ?? []),
-      JSON.stringify(p.emotional_trends ?? []),
-      p.id
-    );
-  }
+export async function savePortrait(p: Partial<Portrait>): Promise<void> {
+  await supabase.from('portrait').upsert({
+    id: p.id ?? 'user_1',
+    name: p.name,
+    identity: p.identity,
+    values: p.values,
+    principles: p.principles,
+    strengths: p.strengths,
+    blind_spots: p.blind_spots,
+    dreams: p.dreams,
+    relationships: p.relationships,
+    decision_patterns: p.decision_patterns ?? [],
+    growth: p.growth ?? [],
+    cognitive_profile: p.cognitive_profile ?? {},
+    active_beliefs: p.active_beliefs ?? [],
+    emotional_trends: p.emotional_trends ?? [],
+  });
 }
 
 // ─── Journeys ──────────────────────────────────────────────────────────────────
-export function getJourneys(): Journey[] {
-  const db = getDb();
-  const rows = db.prepare('SELECT * FROM journeys').all() as Record<string, unknown>[];
-  return rows.map(r => ({
-    id: r.id as string,
-    category: r.category as string,
-    icon: r.icon as string,
-    title: r.title as string,
-    currentState: r.currentState as string,
-    vision: r.vision as string,
-    milestones: (parseJson(r.milestones as string, []) as string[]).map((text, i) => ({
+export async function getJourneys(): Promise<Journey[]> {
+  const { data } = await supabase.from('journeys').select('*').order('created_at');
+  if (!data) return [];
+  return data.map(r => ({
+    id: r.id,
+    category: r.category,
+    icon: r.icon,
+    title: r.title,
+    currentState: r.current_state,
+    vision: r.vision,
+    milestones: (r.milestones ?? []).map((text: string, i: number) => ({
       id: `m_${i}`, text, completed: false
     })),
-    memories: parseJson(r.memories as string, []),
-    lessons: parseJson(r.lessons as string, []),
-    progress: r.progress as number,
-    timeline: parseJson(r.timeline as string, []),
+    memories: r.memories ?? [],
+    lessons: r.lessons ?? [],
+    progress: r.progress,
+    timeline: r.timeline ?? [],
   }));
 }
 
-export function saveJourney(j: Partial<Journey>): void {
-  const db = getDb();
+export async function saveJourney(j: Partial<Journey>): Promise<void> {
   const milestoneTexts = (j.milestones ?? []).map(m => m.text);
-  db.prepare(`UPDATE journeys SET
-    currentState=?, vision=?, milestones=?, memories=?, lessons=?, progress=?, timeline=?
-    WHERE id=?`).run(
-    j.currentState, j.vision,
-    JSON.stringify(milestoneTexts),
-    JSON.stringify(j.memories ?? []),
-    JSON.stringify(j.lessons ?? []),
-    j.progress,
-    JSON.stringify(j.timeline ?? []),
-    j.id
-  );
+  await supabase.from('journeys').upsert({
+    id: j.id,
+    current_state: j.currentState,
+    vision: j.vision,
+    milestones: milestoneTexts,
+    memories: j.memories ?? [],
+    lessons: j.lessons ?? [],
+    progress: j.progress,
+    timeline: j.timeline ?? [],
+    updated_at: new Date().toISOString(),
+  });
 }
 
 // ─── Library ───────────────────────────────────────────────────────────────────
-export function getLibrary(): LibraryItem[] {
-  const db = getDb();
-  const rows = db.prepare('SELECT * FROM library ORDER BY dateAdded DESC').all() as Record<string, unknown>[];
-  return rows.map(r => ({
-    id: r.id as string,
-    type: r.type as string,
-    title: r.title as string,
-    author: r.author as string,
-    content: r.content as string,
-    dateAdded: r.dateAdded as string,
-    tags: parseJson(r.tags as string, []),
+export async function getLibrary(): Promise<LibraryItem[]> {
+  const { data } = await supabase.from('library').select('*').order('date_added', { ascending: false });
+  if (!data) return [];
+  return data.map(r => ({
+    id: r.id,
+    type: r.type,
+    title: r.title,
+    author: r.author,
+    content: r.content,
+    dateAdded: r.date_added,
+    tags: r.tags ?? [],
   }));
 }
 
 // ─── Chats ─────────────────────────────────────────────────────────────────────
-export function getChats(limit = 50): ChatMessage[] {
-  const db = getDb();
-  const rows = db.prepare('SELECT * FROM chats ORDER BY time DESC LIMIT ?').all(limit) as Record<string, unknown>[];
-  return rows.reverse().map(r => ({
-    id: r.id as string,
+export async function getChats(limit = 50): Promise<ChatMessage[]> {
+  const { data } = await supabase
+    .from('chats')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (!data) return [];
+  return data.reverse().map(r => ({
+    id: r.id,
     sender: r.sender as 'william' | 'user',
-    text: r.text as string,
-    time: r.time as string,
+    text: r.text,
+    time: r.time,
   }));
 }
 
-export function saveChat(msg: ChatMessage): void {
-  const db = getDb();
-  db.prepare('INSERT OR REPLACE INTO chats (id, sender, text, time, session) VALUES (?, ?, ?, ?, ?)')
-    .run(msg.id, msg.sender, msg.text, msg.time, 'default');
+export async function saveChat(msg: ChatMessage): Promise<void> {
+  await supabase.from('chats').upsert({
+    id: msg.id,
+    sender: msg.sender,
+    text: msg.text,
+    time: msg.time,
+    session: 'default',
+    created_at: new Date().toISOString(),
+  });
 }
 
 // ─── World Model ───────────────────────────────────────────────────────────────
-export function getWorldModel(): { nodes: MemoryNode[]; edges: MemoryEdge[] } {
-  const db = getDb();
-  const nodes = db.prepare('SELECT * FROM memory_nodes ORDER BY last_updated DESC LIMIT 60').all() as Record<string, unknown>[];
-  const edges = db.prepare('SELECT * FROM memory_edges').all() as Record<string, unknown>[];
+export async function getWorldModel(): Promise<{ nodes: MemoryNode[]; edges: MemoryEdge[] }> {
+  const [{ data: nodes }, { data: edges }] = await Promise.all([
+    supabase.from('memory_nodes').select('*').order('last_updated', { ascending: false }).limit(60),
+    supabase.from('memory_edges').select('*').limit(100),
+  ]);
+
   return {
-    nodes: nodes.map(n => ({
-      id: n.id as string,
-      type: n.type as string,
-      label: n.label as string,
-      description: n.description as string,
-      confidence: n.confidence as number,
-      last_updated: n.last_updated as string,
-      metadata: parseJson(n.metadata as string, {}),
+    nodes: (nodes ?? []).map(n => ({
+      id: n.id,
+      type: n.type,
+      label: n.label,
+      description: n.description,
+      confidence: n.confidence,
+      last_updated: n.last_updated,
+      metadata: n.metadata ?? {},
     })),
-    edges: edges.map(e => ({
-      id: e.id as string,
-      from_id: e.from_id as string,
-      to_id: e.to_id as string,
-      relation: e.relation as string,
-      strength: e.strength as number,
-      created_at: e.created_at as string,
+    edges: (edges ?? []).map(e => ({
+      id: e.id,
+      from_id: e.from_id,
+      to_id: e.to_id,
+      relation: e.relation,
+      strength: e.strength,
+      created_at: e.created_at,
     })),
   };
 }
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
-function parseJson<T>(raw: string | null | undefined, fallback: T): T {
-  if (!raw) return fallback;
-  try { return JSON.parse(raw) as T; } catch { return fallback; }
+export async function saveMemoryNode(node: Partial<MemoryNode>): Promise<void> {
+  await supabase.from('memory_nodes').upsert({
+    id: node.id,
+    type: node.type,
+    label: node.label,
+    description: node.description,
+    confidence: node.confidence ?? 1.0,
+    last_updated: new Date().toISOString(),
+    metadata: node.metadata ?? {},
+  });
 }
