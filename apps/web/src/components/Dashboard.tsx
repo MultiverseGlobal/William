@@ -6,8 +6,21 @@ import { CognitiveMap } from './CognitiveMap';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { MemoryNode, MemoryEdge } from '@william/types';
 import { 
-  Sparkles, Brain, Compass, BookOpen, Target, Zap, Radio, MessageSquare 
+  Sparkles, Brain, Compass, BookOpen, Target, Zap, Radio, MessageSquare,
+  Sun, Moon, Command, LayoutGrid, Dumbbell, Lightbulb, Code2, Music, Heart,
+  TrendingUp, Globe, Cpu, Feather, Flame, Star
 } from 'lucide-react';
+
+// Journey icon lookup — maps string keys from the DB to Lucide icon components
+const JOURNEY_ICON_MAP: Record<string, React.FC<{ size?: number; color?: string; strokeWidth?: number }>> = {
+  Brain, Compass, BookOpen, Target, Zap, Sparkles, Radio, MessageSquare,
+  Dumbbell, Lightbulb, Code2, Music, Heart, TrendingUp, Globe, Cpu,
+  Feather, Flame, Star, LayoutGrid,
+};
+function JourneyIcon({ name, size = 22 }: { name: string; size?: number }) {
+  const Icon = JOURNEY_ICON_MAP[name] ?? Target;
+  return <Icon size={size} strokeWidth={1.5} />;
+}
 
 
 
@@ -836,28 +849,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
             <span>William</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <button 
-              className="zen-btn-outline" 
-              style={{ padding: '6px 14px', fontSize: '0.75rem', borderRadius: '16px' }}
-              onClick={() => setIsPaletteOpen(true)}
-            >
-              Press ⌘K for Systems
-            </button>
-            <button 
-              className="zen-btn-outline"
-              style={{ width: '32px', height: '32px', padding: 0, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              onClick={toggleTheme}
-            >
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-          </div>
-        </header>
-
-        {/* CINEMATIC CANVAS */}
-        <main className={`cinematic-canvas${activeTab === 'home' ? ' home-mode' : ''}`}>
-          
-          {/* Glass segmented control tab bar */}
+          {/* Nav tabs live in header */}
           <div className="glass-nav-bar">
             <button 
               className={`glass-nav-item ${activeTab === 'home' ? 'active' : ''}`}
@@ -869,19 +861,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
               className={`glass-nav-item ${activeTab === 'portrait' ? 'active' : ''}`}
               onClick={() => setActiveTab('portrait')}
             >
-              Living Portrait
+              Portrait
             </button>
             <button 
               className={`glass-nav-item ${activeTab === 'journeys' ? 'active' : ''}`}
               onClick={() => setActiveTab('journeys')}
             >
-              Active Journeys
+              Journeys
             </button>
             <button 
               className={`glass-nav-item ${activeTab === 'library' ? 'active' : ''}`}
               onClick={() => setActiveTab('library')}
             >
-              Room Library
+              Library
             </button>
             <button 
               className={`glass-nav-item ${activeTab === 'world' ? 'active' : ''}`}
@@ -896,6 +888,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
               Settings
             </button>
           </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button 
+              className="zen-btn-outline header-action-btn"
+              onClick={() => setIsPaletteOpen(true)}
+              title="Command palette (⌘K)"
+            >
+              <Command size={13} strokeWidth={2} />
+              <span>Systems</span>
+            </button>
+            <button 
+              className="zen-btn-outline header-icon-btn"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+            >
+              {theme === 'dark' ? <Sun size={14} strokeWidth={2} /> : <Moon size={14} strokeWidth={2} />}
+            </button>
+          </div>
+        </header>
+
+        {/* CINEMATIC CANVAS */}
+        <main className={`cinematic-canvas${activeTab === 'home' ? ' home-mode' : ''}`}>
+          
+          {/* Nav bar now lives in the header — nothing here */}
 
           {/* Insight Card — slides in from bottom when patterns detected */}
           <AnimatePresence>
@@ -1167,7 +1183,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
                     <div key={journey.id} className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontSize: '1.75rem' }}>{journey.icon}</span>
+                          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--bg-canvas)', border: '1px solid var(--border-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color)', flexShrink: 0 }}>
+                            <JourneyIcon name={journey.icon} size={18} />
+                          </div>
                           <div>
                             <h4 style={{ fontSize: '1.125rem', fontWeight: 500 }}>{journey.title}</h4>
                             <span className="zen-caption">{journey.currentState}</span>
@@ -1419,7 +1437,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
     <div className="zen-container" style={{ justifyContent: 'flex-start', minHeight: '100vh', paddingBottom: '80px' }}>
       
       {/* Immersive Focus Mode Fullscreen Overlay */}
-      {isFocusMode && worldModel && (
+      {isFocusMode && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1900, display: 'flex', flexDirection: 'column', background: '#0a0a0c' }}>
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: '#111115' }}>
             <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-serif)' }}>Focus Mode</span>
@@ -1432,12 +1450,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialData, onReset }) =>
             </button>
           </header>
           <div style={{ flex: 1 }}>
-            <CognitiveMap
-              worldModel={worldModel}
-              onRefresh={() => fetchJson('/api/world-model').then(d => d && setWorldModel(d))}
-              onSaveNode={handleSaveNode}
-              onSaveEdge={handleSaveEdge}
-            />
+            {worldModel ? (
+              <CognitiveMap
+                worldModel={worldModel}
+                onRefresh={() => fetchJson('/api/world-model').then(d => d && setWorldModel(d))}
+                onSaveNode={handleSaveNode}
+                onSaveEdge={handleSaveEdge}
+              />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
+                <div className="breathing-assistant-orb" style={{ width: '80px', height: '80px' }} />
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading cognitive map…</p>
+              </div>
+            )}
           </div>
         </div>
       )}
