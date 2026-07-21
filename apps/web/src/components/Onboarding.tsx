@@ -141,9 +141,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
       case 8:
         setMeaning(userText);
-        nextQuestion = `Thank you, ${userName}. Your cognitive profile and initial memory nodes are ready.`;
+        nextQuestion = `Thank you, ${userName || 'friend'}. Your cognitive profile and initial memory nodes are ready.`;
         setCurrentStep(9);
+        setTimeout(() => {
+          setCurrentStep(10);
+        }, 1500);
         break;
+
+      case 9:
+      case 10:
+        handleComplete();
+        return;
 
       default:
         break;
