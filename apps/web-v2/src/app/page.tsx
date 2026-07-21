@@ -1,172 +1,149 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { apiFetch, sendChat } from '@/lib/api';
-import type { Portrait, Journey, LibraryItem, ChatMessage, WorldModel } from '@/lib/types';
-
-// Components
-import { AppHeader } from '@/components/AppHeader';
-import { AppSidebar } from '@/components/AppSidebar';
-import { CompanionView } from '@/components/CompanionView';
-import { PortraitView } from '@/components/PortraitView';
-import { JourneysView } from '@/components/JourneysView';
-import { LibraryView } from '@/components/LibraryView';
-import { WorldView } from '@/components/WorldView';
-import { SettingsView } from '@/components/SettingsView';
-import { FocusMode } from '@/components/FocusMode';
-
-export type NavTab = 'companion' | 'portrait' | 'journeys' | 'library' | 'world' | 'settings';
-
-interface AppData {
-  portrait: Portrait | null;
-  journeys: Journey[];
-  library: LibraryItem[];
-  recentChats: ChatMessage[];
-}
+import { AuroraHeader } from '@/components/AuroraHeader';
+import { AiOrb } from '@/components/AiOrb';
+import { UpcomingSchedule } from '@/components/widgets/UpcomingSchedule';
+import { AiInsights } from '@/components/widgets/AiInsights';
+import { VacationEligibility } from '@/components/widgets/VacationEligibility';
+import { WeatherWidget } from '@/components/widgets/WeatherWidget';
+import { PromptInputModal } from '@/components/PromptInputModal';
+import { Sparkle, MagnifyingGlass } from '@phosphor-icons/react';
 
 export default function Home() {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [activeTab, setActiveTab] = useState<NavTab>('companion');
-  const [isFocusMode, setIsFocusMode] = useState(false);
-  const [data, setData] = useState<AppData>({ portrait: null, journeys: [], library: [], recentChats: [] });
-  const [worldModel, setWorldModel] = useState<WorldModel | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Chat state
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [lastReply, setLastReply] = useState('');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [activeQuery, setActiveQuery] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [orbExpression, setOrbExpression] = useState<'idle' | 'listening' | 'happy' | 'thinking'>('idle');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Load initial data
-  useEffect(() => {
-    apiFetch<AppData>('/api/data').then(d => {
-      if (d) {
-        setData(d);
-        setMessages(d.recentChats);
-        // Trigger greeting
-        sendChat('__GREETING__').then(reply => setLastReply(reply));
-      }
-      setLoading(false);
-    });
-  }, []);
+  const handleToggleTheme = () => {
+    setTheme((t) => (t === 'light' ? 'dark' : 'light'));
+  };
 
-  // Load world model when needed
-  const loadWorldModel = useCallback(() => {
-    if (!worldModel) {
-      apiFetch<WorldModel>('/api/world-model').then(d => d && setWorldModel(d));
-    }
-  }, [worldModel]);
+  const handlePromptSubmit = (prompt: string) => {
+    setOrbExpression('thinking');
+    setTimeout(() => {
+      setActiveQuery(prompt);
+      setOrbExpression('happy');
+      setTimeout(() => setOrbExpression('idle'), 2000);
+    }, 400);
+  };
 
-  const handleSendChat = useCallback(async () => {
-    if (!chatInput.trim() || isSending) return;
-    const text = chatInput.trim();
-    setChatInput('');
-    setIsSending(true);
-
-    const userMsg: ChatMessage = { id: Date.now().toString(), sender: 'user', text, time: new Date().toISOString() };
-    setMessages(prev => [...prev, userMsg]);
-
-    const reply = await sendChat(text);
-    const willMsg: ChatMessage = { id: (Date.now() + 1).toString(), sender: 'william', text: reply, time: new Date().toISOString() };
-    setMessages(prev => [...prev, willMsg]);
-    setLastReply(reply);
-    setIsSending(false);
-  }, [chatInput, isSending]);
-
-  const handleOpenFocus = useCallback(() => {
-    loadWorldModel();
-    setIsFocusMode(true);
-  }, [loadWorldModel]);
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-page)', color: 'var(--text-muted)', fontSize: 13 }}>
-        Loading William…
-      </div>
-    );
-  }
+  const resetToDefault = () => {
+    setActiveQuery(null);
+    setOrbExpression('idle');
+  };
 
   return (
-    <>
-      {/* Focus Mode overlay */}
-      <AnimatePresence>
-        {isFocusMode && (
-          <FocusMode
-            portrait={data.portrait}
-            worldModel={worldModel}
-            messages={messages}
-            chatInput={chatInput}
-            setChatInput={setChatInput}
-            onSend={handleSendChat}
-            isSending={isSending}
-            onClose={() => setIsFocusMode(false)}
-            onRefreshWorld={() => apiFetch<WorldModel>('/api/world-model').then(d => d && setWorldModel(d))}
-          />
-        )}
-      </AnimatePresence>
+    <div className="min-h-screen flex flex-col justify-between relative overflow-hidden transition-colors duration-300">
+      {/* Top Navigation Header */}
+      <AuroraHeader
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        onOpenSettings={() => setIsModalOpen(true)}
+      />
 
-      {/* Main App Shell */}
-      <div className="app-shell">
-        <AppHeader
-          theme={theme}
-          onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-          onOpenFocus={handleOpenFocus}
-        />
+      {/* Main Body Section */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-4 max-w-6xl mx-auto w-full z-10">
+        {/* Dynamic Animated Greeting / Headline */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeQuery || 'default-greeting'}
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="text-center mb-8 max-w-2xl"
+          >
+            {activeQuery ? (
+              <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-[var(--aurora-text-main)] font-sans leading-tight">
+                {activeQuery}
+              </h1>
+            ) : (
+              <div className="space-y-2">
+                <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-[var(--aurora-text-main)] font-sans">
+                  Good Morning, Ayoub!
+                </h1>
+                <p className="text-2xl md:text-4xl font-semibold text-[var(--aurora-text-main)] opacity-90 font-sans">
+                  How can I assist you today?
+                </p>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
 
-        <div className="app-body">
-          <AppSidebar activeTab={activeTab} onNav={setActiveTab} />
-
-          <main className="app-main">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18 }}
-                style={{ minHeight: '100%' }}
+        {/* Dynamic Display Area */}
+        <AnimatePresence mode="wait">
+          {activeQuery && activeQuery.toLowerCase().includes('weather') ? (
+            /* Weather Response View */
+            <motion.div
+              key="weather-view"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.3 }}
+              className="w-full flex flex-col items-center"
+            >
+              <WeatherWidget city="Lisbon" />
+              <button
+                onClick={resetToDefault}
+                className="mt-6 aurora-glass-pill px-4 py-2 text-xs font-semibold text-[var(--aurora-text-sub)] hover:text-[var(--aurora-text-main)] transition-colors cursor-pointer"
               >
-                {activeTab === 'companion' && (
-                  <CompanionView
-                    portrait={data.portrait}
-                    lastReply={lastReply}
-                    messages={messages}
-                    chatInput={chatInput}
-                    setChatInput={setChatInput}
-                    onSend={handleSendChat}
-                    isSending={isSending}
-                    onOpenFocus={handleOpenFocus}
-                  />
-                )}
-                {activeTab === 'portrait' && <PortraitView portrait={data.portrait} />}
-                {activeTab === 'journeys' && (
-                  <JourneysView
-                    journeys={data.journeys}
-                    onUpdate={journeys => setData(d => ({ ...d, journeys }))}
-                  />
-                )}
-                {activeTab === 'library' && <LibraryView items={data.library} />}
-                {activeTab === 'world' && (
-                  <WorldView
-                    worldModel={worldModel}
-                    onLoad={loadWorldModel}
-                    onOpenFocus={handleOpenFocus}
-                  />
-                )}
-                {activeTab === 'settings' && (
-                  <SettingsView portrait={data.portrait} theme={theme} onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} />
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </main>
+                ← Back to Dashboard
+              </button>
+            </motion.div>
+          ) : (
+            /* Default Dashboard 3-Card Grid */
+            <motion.div
+              key="dashboard-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl items-stretch"
+            >
+              <UpcomingSchedule />
+              <AiInsights />
+              <VacationEligibility />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+
+      {/* Interactive AI Orb & Prompt Bar Area */}
+      <footer className="w-full flex flex-col items-center justify-center pb-8 pt-4 z-20 space-y-4">
+        {/* Interactive Orb */}
+        <div className="hover:scale-105 transition-transform">
+          <AiOrb
+            expression={orbExpression}
+            onClick={() => setIsModalOpen(true)}
+          />
         </div>
-      </div>
-    </>
+
+        {/* Bottom Floating Bar */}
+        <div
+          onClick={() => setIsModalOpen(true)}
+          className="aurora-glass-pill px-5 py-2.5 flex items-center gap-3 text-xs font-medium text-[var(--aurora-text-sub)] hover:text-[var(--aurora-text-main)] shadow-lg cursor-pointer transition-all hover:scale-105 active:scale-95 border border-[var(--aurora-glass-border)]"
+        >
+          <MagnifyingGlass size={16} weight="bold" className="text-amber-500" />
+          <span>Ask William or tap orb to speak…</span>
+          <Sparkle size={14} weight="fill" className="text-pink-400" />
+        </div>
+
+      </footer>
+
+      {/* Prompt Modal */}
+      <PromptInputModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmitPrompt={handlePromptSubmit}
+      />
+    </div>
   );
 }
+
