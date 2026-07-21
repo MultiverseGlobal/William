@@ -61,11 +61,43 @@ Rules for your response:
 }
 
 export async function callAI(systemPrompt: string, userPrompt: string, maxTokens = 300): Promise<string> {
+  const omniUrl = process.env.OMNIROUTE_URL;
+  const omniKey = process.env.OMNIROUTE_API_KEY;
+  const omniModel = process.env.OMNIROUTE_MODEL || 'gpt-4o-mini';
+
   const geminiKey = process.env.GEMINI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   const claudeKey = process.env.CLAUDE_API_KEY;
 
-  // Try Gemini first
+  // 1. Try OmniRoute gateway if specified
+  if (omniUrl) {
+    try {
+      const endpoint = `${omniUrl.replace(/\/+$/, '')}/chat/completions`;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (omniKey) headers['Authorization'] = `Bearer ${omniKey}`;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: omniModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: maxTokens,
+          temperature: 0.8
+        })
+      });
+      const json = await res.json() as { choices?: Array<{ message: { content: string } }> };
+      const text = json?.choices?.[0]?.message?.content;
+      if (text) return text;
+    } catch (e) {
+      console.warn('OmniRoute call failed:', e);
+    }
+  }
+
+  // 2. Try Gemini
   if (geminiKey) {
     try {
       const res = await fetch(
@@ -84,11 +116,11 @@ export async function callAI(systemPrompt: string, userPrompt: string, maxTokens
       const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) return text;
     } catch (e) {
-      console.warn('Gemini failed:', e);
+      console.warn('Gemini call failed:', e);
     }
   }
 
-  // Try OpenAI
+  // 3. Try OpenAI
   if (openaiKey) {
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -108,11 +140,11 @@ export async function callAI(systemPrompt: string, userPrompt: string, maxTokens
       const text = json?.choices?.[0]?.message?.content;
       if (text) return text;
     } catch (e) {
-      console.warn('OpenAI failed:', e);
+      console.warn('OpenAI call failed:', e);
     }
   }
 
-  // Try Claude
+  // 4. Try Claude
   if (claudeKey) {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -133,10 +165,10 @@ export async function callAI(systemPrompt: string, userPrompt: string, maxTokens
       const text = json?.content?.[0]?.text;
       if (text) return text;
     } catch (e) {
-      console.warn('Claude failed:', e);
+      console.warn('Claude call failed:', e);
     }
   }
 
-  // Offline fallback
+  // Fallback if no keys or all failed
   return "I am listening closely, sitting with your thoughts.";
 }
