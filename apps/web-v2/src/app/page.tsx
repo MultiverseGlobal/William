@@ -11,7 +11,10 @@ import { WeatherWidget } from '@/components/widgets/WeatherWidget';
 import { PromptInputModal } from '@/components/PromptInputModal';
 import { Sparkle, MagnifyingGlass } from '@phosphor-icons/react';
 
+export type NavTab = 'companion' | 'portrait' | 'journeys' | 'library' | 'world' | 'settings';
+
 export default function Home() {
+
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [activeQuery, setActiveQuery] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
