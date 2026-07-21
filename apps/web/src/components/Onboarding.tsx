@@ -386,17 +386,18 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {Array.from({ length: 10 }).map((_, idx) => (
-              <div 
-                key={idx}
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: idx < currentStep ? '#6366f1' : 'rgba(255, 255, 255, 0.15)',
-                  transition: 'all 0.3s ease'
-                }}
-              />
-            ))}
+                <div 
+                  key={idx}
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: idx < currentStep ? '#6366f1' : 'rgba(255, 255, 255, 0.15)',
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
