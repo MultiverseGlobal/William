@@ -84,7 +84,22 @@ export default function MobileOnboarding() {
             </View>
             <Text style={styles.headerTitle}>William Companion</Text>
           </View>
-          <Text style={styles.stepBadge}>{currentStep + 1} / {ONBOARDING_QUESTIONS.length}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity
+              onPress={() => handleNext()}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 14,
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.12)'
+              }}
+            >
+              <Text style={{ color: '#9ca3af', fontSize: 11, fontWeight: '500' }}>Skip & Learn As I Go</Text>
+            </TouchableOpacity>
+            <Text style={styles.stepBadge}>{currentStep + 1} / {ONBOARDING_QUESTIONS.length}</Text>
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
