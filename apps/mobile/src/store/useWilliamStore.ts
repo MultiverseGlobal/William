@@ -36,43 +36,8 @@ export const WILLIAM_NODES: ConstellationNode[] = [
 
 export const WILLIAM_FILES: WilliamFileCard[] = [];
 
-export const SAMPLE_HEADLINES = [
-  "You're 20 minutes ahead of schedule today.",
-  "Meeting with Sarah at 2:00 PM — agenda prep ready.",
-  "3 high-priority briefings pending your review.",
-  "Market intelligence update: Pseudonyms quarterly trend report.",
-  "Resting focus period active until 11:30 AM.",
-];
-
-export const SAMPLE_ITEMS: CardItem[] = [
-  {
-    id: 'item-1',
-    title: 'Urgent Schedule Conflict',
-    subtitle: '11:30 AM • Team Sync',
-    body: 'Overlaps with executive review. Recommended action: Reschedule Team Sync to 3:30 PM.',
-    type: 'meeting',
-    actionLabel: 'Accept Reschedule',
-    urgent: true,
-  },
-  {
-    id: 'item-2',
-    title: 'Executive Briefing',
-    subtitle: 'Daily Digest',
-    body: 'All key deliverables on track. 2 pull requests merged, 0 blocking incidents reported today.',
-    type: 'brief',
-    actionLabel: 'Acknowledge',
-    urgent: false,
-  },
-  {
-    id: 'item-3',
-    title: 'Chief of Staff Settings',
-    subtitle: 'Preferences & Connections',
-    body: 'Calendar connected. Push notifications active. Command Amber theme loaded.',
-    type: 'settings',
-    actionLabel: 'Done',
-    urgent: false,
-  },
-];
+export const SAMPLE_HEADLINES: string[] = [];
+export const SAMPLE_ITEMS: CardItem[] = [];
 
 class WilliamStore {
   private listeners: Set<() => void> = new Set();
