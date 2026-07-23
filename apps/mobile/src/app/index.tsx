@@ -213,20 +213,6 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Suggestions */}
-              <View style={styles.chipsRow}>
-                {QUICK_PROMPTS.map((chip, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    style={styles.chip}
-                    onPress={() => handlePromptSubmit(chip)}
-                  >
-                    <Feather name="zap" size={11} color="#4B5563" />
-                    <Text style={styles.chipText}>{chip}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
               {/* Input Bar */}
               <View style={styles.inputBar}>
                 <TextInput
@@ -243,19 +229,16 @@ export default function HomeScreen() {
                 >
                   <Feather name="arrow-up" size={16} color="#FFFFFF" />
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.inlineAddBtn}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                    setShowAddModal(true);
+                  }}
+                >
+                  <Feather name="plus" size={16} color="#2563EB" />
+                </TouchableOpacity>
               </View>
-
-              {/* Floating + New Executive Action Item Button */}
-              <TouchableOpacity
-                style={styles.floatingAddBtn}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-                  setShowAddModal(true);
-                }}
-              >
-                <Feather name="plus" size={20} color="#FFFFFF" />
-                <Text style={styles.floatingAddText}>New Action</Text>
-              </TouchableOpacity>
             </View>
           )}
         </>
@@ -549,27 +532,14 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  floatingAddBtn: {
-    position: 'absolute',
-    bottom: 24,
-    right: 20,
-    flexDirection: 'row',
+  inlineAddBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#EFF6FF',
     alignItems: 'center',
-    backgroundColor: '#2563EB',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    gap: 6,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  floatingAddText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    justifyContent: 'center',
+    marginLeft: 6,
   },
   modalOverlay: {
     flex: 1,
