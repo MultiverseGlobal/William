@@ -1,5 +1,13 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withRepeat,
+  withSequence,
+  Easing,
+} from 'react-native-reanimated';
 import { TOKENS } from '../constants/tokens';
 
 interface CommandOrbProps {
@@ -8,67 +16,56 @@ interface CommandOrbProps {
 }
 
 export const CommandOrb: React.FC<CommandOrbProps> = ({ isZoomed, onPress }) => {
-  // Breathing animation
-  const breatheAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim = useRef(new Animated.Value(0.4)).current;
+  // Breathing animation shared values
+  const breatheAnim = useSharedValue(1);
+  const glowAnim = useSharedValue(0.4);
 
-  // Zoom animation (scale 1.6x & translate upward)
-  const zoomScale = useRef(new Animated.Value(1)).current;
-  const zoomTranslateY = useRef(new Animated.Value(0)).current;
+  // Zoom animation shared values
+  const zoomScale = useSharedValue(1);
+  const zoomTranslateY = useSharedValue(0);
 
   useEffect(() => {
-    // Breathing loop
-    const breathe = Animated.loop(
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(breatheAnim, {
-            toValue: 1.06,
-            duration: 3000,
-            easing: Easing.bezier(0.4, 0, 0.2, 1),
-            useNativeDriver: true,
-          }),
-          Animated.timing(glowAnim, {
-            toValue: 0.7,
-            duration: 3000,
-            easing: Easing.bezier(0.4, 0, 0.2, 1),
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.parallel([
-          Animated.timing(breatheAnim, {
-            toValue: 0.94,
-            duration: 3000,
-            easing: Easing.bezier(0.4, 0, 0.2, 1),
-            useNativeDriver: true,
-          }),
-          Animated.timing(glowAnim, {
-            toValue: 0.35,
-            duration: 3000,
-            easing: Easing.bezier(0.4, 0, 0.2, 1),
-            useNativeDriver: true,
-          }),
-        ]),
-      ])
+    // Continuous breathing loop
+    breatheAnim.value = withRepeat(
+      withSequence(
+        withTiming(1.06, { duration: 3000, easing: Easing.bezier(0.4, 0, 0.2, 1) }),
+        withTiming(0.94, { duration: 3000, easing: Easing.bezier(0.4, 0, 0.2, 1) })
+      ),
+      -1,
+      true
     );
-    breathe.start();
+
+    glowAnim.value = withRepeat(
+      withSequence(
+        withTiming(0.7, { duration: 3000, easing: Easing.bezier(0.4, 0, 0.2, 1) }),
+        withTiming(0.35, { duration: 3000, easing: Easing.bezier(0.4, 0, 0.2, 1) })
+      ),
+      -1,
+      true
+    );
   }, [breatheAnim, glowAnim]);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(zoomScale, {
-        toValue: isZoomed ? 1.6 : 1,
-        duration: TOKENS.animation.entranceDuration,
-        easing: Easing.bezier(0.16, 1, 0.3, 1),
-        useNativeDriver: true,
-      }),
-      Animated.timing(zoomTranslateY, {
-        toValue: isZoomed ? -75 : 0,
-        duration: TOKENS.animation.entranceDuration,
-        easing: Easing.bezier(0.16, 1, 0.3, 1),
-        useNativeDriver: true,
-      }),
-    ]).start();
+    zoomScale.value = withTiming(isZoomed ? 1.6 : 1, {
+      duration: TOKENS.animation.entranceDuration,
+      easing: Easing.bezier(0.16, 1, 0.3, 1),
+    });
+    zoomTranslateY.value = withTiming(isZoomed ? -75 : 0, {
+      duration: TOKENS.animation.entranceDuration,
+      easing: Easing.bezier(0.16, 1, 0.3, 1),
+    });
   }, [isZoomed, zoomScale, zoomTranslateY]);
+
+  const orbAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: zoomTranslateY.value },
+      { scale: breatheAnim.value * zoomScale.value },
+    ],
+  }));
+
+  const glowAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: glowAnim.value,
+  }));
 
   return (
     <TouchableOpacity
@@ -76,26 +73,9 @@ export const CommandOrb: React.FC<CommandOrbProps> = ({ isZoomed, onPress }) => 
       onPress={onPress}
       style={styles.touchContainer}
     >
-      <Animated.View
-        style={[
-          styles.orbWrapper,
-          {
-            transform: [
-              { translateY: zoomTranslateY },
-              { scale: Animated.multiply(breatheAnim, zoomScale) },
-            ],
-          },
-        ]}
-      >
+      <Animated.View style={[styles.orbWrapper, orbAnimatedStyle]}>
         {/* Soft Radial Glow Bloom Background */}
-        <Animated.View
-          style={[
-            styles.glowBloom,
-            {
-              opacity: glowAnim,
-            },
-          ]}
-        />
+        <Animated.View style={[styles.glowBloom, glowAnimatedStyle]} />
 
         {/* Outer Ring */}
         <View style={styles.outerRing} />
@@ -130,7 +110,6 @@ const styles = StyleSheet.create({
     borderRadius: 90,
     backgroundColor: TOKENS.colors.accent,
     opacity: 0.4,
-    // Soft shadow bloom
     shadowColor: TOKENS.colors.accent,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.95,

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+export type AppStage = 'LISTENING' | 'PROCESSING' | 'CONSTELLATION' | 'FILE_STACK' | 'EDIT_MODE';
+
 export interface CardItem {
   id: string;
   title: string;
@@ -9,6 +11,30 @@ export interface CardItem {
   actionLabel?: string;
   urgent?: boolean;
 }
+
+export interface WilliamFileCard {
+  id: string;
+  name: string;
+  size: string;
+  timestamp: string;
+  format: string;
+  iconType: 'document' | 'calendar' | 'chart' | 'cube' | 'layers' | 'shield';
+}
+
+export interface ConstellationNode {
+  id: string;
+  label: string;
+  isPrimary?: boolean;
+  xPercent: number; // 0-100
+  yPercent: number; // 0-100
+  fileCount: number;
+}
+
+export const WILLIAM_NODES: ConstellationNode[] = [
+  { id: 'briefings', label: 'Executive Briefings', isPrimary: true, xPercent: 50, yPercent: 48, fileCount: 0 },
+];
+
+export const WILLIAM_FILES: WilliamFileCard[] = [];
 
 export const SAMPLE_HEADLINES = [
   "You're 20 minutes ahead of schedule today.",
@@ -52,12 +78,18 @@ class WilliamStore {
   private listeners: Set<() => void> = new Set();
 
   state = {
+    stage: 'LISTENING' as AppStage,
+    activeNode: WILLIAM_NODES[0] as ConstellationNode,
+    isEditMode: false,
+    queryText: 'Hey Natural, show me Apple meeting files',
     isZoomed: false,
     activeItem: null as CardItem | null,
     pendingCount: 3,
     headlineIndex: 0,
-    onboardingStep: 0, // 0 = done/ready, 1 = welcome, 2 = calendar, 3 = first mission
+    onboardingStep: 0,
     items: SAMPLE_ITEMS,
+    files: WILLIAM_FILES,
+    nodes: WILLIAM_NODES,
   };
 
   subscribe(listener: () => void) {
@@ -69,8 +101,49 @@ class WilliamStore {
     this.listeners.forEach((l) => l());
   }
 
+  setStage(stage: AppStage) {
+    this.state.stage = stage;
+    if (stage !== 'EDIT_MODE') {
+      this.state.isEditMode = false;
+    }
+    this.notify();
+  }
+
+  selectNode(node: ConstellationNode) {
+    this.state.activeNode = node;
+    this.setStage('FILE_STACK');
+  }
+
+  toggleEditMode() {
+    this.state.isEditMode = !this.state.isEditMode;
+    if (this.state.isEditMode) {
+      this.state.stage = 'EDIT_MODE';
+    } else {
+      this.state.stage = 'FILE_STACK';
+    }
+    this.notify();
+  }
+
+  resetToListening() {
+    this.state.isEditMode = false;
+    this.state.stage = 'LISTENING';
+    this.notify();
+  }
+
   get headline() {
     return SAMPLE_HEADLINES[this.state.headlineIndex % SAMPLE_HEADLINES.length];
+  }
+
+  deleteLastFile() {
+    if (this.state.files.length > 0) {
+      this.state.files = this.state.files.slice(0, -1);
+      this.notify();
+    }
+  }
+
+  addFile(file: WilliamFileCard) {
+    this.state.files = [file, ...this.state.files];
+    this.notify();
   }
 
   rotateHeadline() {
@@ -91,20 +164,17 @@ class WilliamStore {
       this.state.pendingCount = Math.max(0, this.state.pendingCount - 1);
     }
     this.notify();
-    // Rotate headline after dismissal
     setTimeout(() => {
       this.rotateHeadline();
     }, 400);
   }
 
-  // Unprompted Urgent Interrupt (zooms in on its own)
   triggerUrgentInterrupt(urgentItem: CardItem) {
     this.state.activeItem = urgentItem;
     this.state.isZoomed = true;
     this.notify();
   }
 
-  // Push Notification Deep-Link (lands directly into zoomed card)
   handlePushNotification(item: CardItem) {
     this.state.activeItem = item;
     this.state.isZoomed = true;
@@ -124,14 +194,20 @@ export function useWilliamStore() {
     };
   }, []);
 
-
   return {
     ...williamStore.state,
     headline: williamStore.headline,
+    setStage: (stage: AppStage) => williamStore.setStage(stage),
+    selectNode: (node: ConstellationNode) => williamStore.selectNode(node),
+    toggleEditMode: () => williamStore.toggleEditMode(),
+    resetToListening: () => williamStore.resetToListening(),
     triggerZoom: (item?: CardItem) => williamStore.triggerZoom(item),
     dismissZoom: () => williamStore.dismissZoom(),
     triggerUrgentInterrupt: (item: CardItem) => williamStore.triggerUrgentInterrupt(item),
     handlePushNotification: (item: CardItem) => williamStore.handlePushNotification(item),
     rotateHeadline: () => williamStore.rotateHeadline(),
+    deleteLastFile: () => williamStore.deleteLastFile(),
+    addFile: (file: WilliamFileCard) => williamStore.addFile(file),
   };
 }
+

@@ -166,3 +166,41 @@ INSERT INTO library (id, type, title, author, content, date_added, tags) VALUES
   '2026-07-21',
   '["AI Architecture", "William", "Philosophy"]'
 ) ON CONFLICT (id) DO NOTHING;
+
+-- Briefings table
+CREATE TABLE IF NOT EXISTS briefings (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  body TEXT,
+  urgent BOOLEAN DEFAULT FALSE,
+  type TEXT DEFAULT 'digest',
+  time TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Calendar events table
+CREATE TABLE IF NOT EXISTS calendar_events (
+  id TEXT PRIMARY KEY,
+  time TEXT NOT NULL,
+  duration TEXT DEFAULT '30m',
+  title TEXT NOT NULL,
+  location TEXT,
+  status TEXT DEFAULT 'upcoming',
+  conflict_notice TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Seed initial briefings & calendar events
+INSERT INTO briefings (id, title, subtitle, body, urgent, type, time) VALUES
+('b1', 'Executive Daily Digest', '09:00 AM • Chief of Staff Auto-Summary', '2 pull requests merged into William web-v2. No blocking incidents. Team schedule is 20 mins ahead.', false, 'digest', '10 mins ago'),
+('b2', 'Schedule Overlap Detected', '11:30 AM • Team Sync vs Executive Review', 'Recommended Action: Reschedule Team Sync to 3:30 PM to free up focus window.', true, 'urgent', '25 mins ago'),
+('b3', 'Pseudonyms Quarterly Trend Report', '14:00 PM • Market Intelligence', 'Competitive intelligence analysis completed for Pseudonyms. Strategy briefing ready for review.', false, 'digest', '2 hours ago')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO calendar_events (id, time, duration, title, location, status, conflict_notice) VALUES
+('s1', '09:30 AM', '30m', 'Executive Focus Block', 'Private Workstation', 'active', NULL),
+('s2', '11:30 AM', '45m', 'Engineering Team Sync', 'Google Meet', 'conflict', 'Overlaps with executive review. Recommended: Move to 3:30 PM.'),
+('s3', '14:00 PM', '60m', 'Sarah & Product Strategy Sync', 'Conference Room 4B', 'upcoming', NULL)
+ON CONFLICT (id) DO NOTHING;
+

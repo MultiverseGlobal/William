@@ -1,5 +1,12 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, Dimensions } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { TOKENS } from '../constants/tokens';
 
 const { width, height } = Dimensions.get('window');
@@ -13,60 +20,52 @@ const STARS = Array.from({ length: 14 }).map((_, i) => ({
   initialOpacity: Math.random() * 0.4 + 0.2,
 }));
 
-export const Starfield: React.FC = () => {
-  const animValues = useRef(STARS.map(() => new Animated.Value(0))).current;
+const StarItem: React.FC<{ star: (typeof STARS)[0] }> = ({ star }) => {
+  const anim = useSharedValue(0);
 
   useEffect(() => {
-    const animations = animValues.map((anim, i) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: STARS[i].speed,
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 0,
-            duration: STARS[i].speed,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-    });
+    anim.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: star.speed }),
+        withTiming(0, { duration: star.speed })
+      ),
+      -1,
+      true
+    );
+  }, [anim, star.speed]);
 
-    animations.forEach((a) => a.start());
-  }, [animValues]);
+  const animatedStyle = useAnimatedStyle(() => {
+    const opacity = star.initialOpacity + anim.value * 0.4;
+    const translateY = -15 * anim.value;
+    return {
+      opacity,
+      transform: [{ translateY }],
+    };
+  });
 
   return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-      {STARS.map((star, i) => {
-        const opacity = animValues[i].interpolate({
-          inputRange: [0, 0.5, 1],
-          outputRange: [star.initialOpacity, star.initialOpacity + 0.4, star.initialOpacity],
-        });
-        const translateY = animValues[i].interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, -15],
-        });
+    <Animated.View
+      style={[
+        styles.star,
+        {
+          left: star.x,
+          top: star.y,
+          width: star.size,
+          height: star.size,
+          borderRadius: star.size / 2,
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+};
 
-        return (
-          <Animated.View
-            key={star.id}
-            style={[
-              styles.star,
-              {
-                left: star.x,
-                top: star.y,
-                width: star.size,
-                height: star.size,
-                borderRadius: star.size / 2,
-                opacity,
-                transform: [{ translateY }],
-              },
-            ]}
-          />
-        );
-      })}
+export const Starfield: React.FC = () => {
+  return (
+    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      {STARS.map((star) => (
+        <StarItem key={star.id} star={star} />
+      ))}
     </View>
   );
 };

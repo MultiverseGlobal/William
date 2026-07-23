@@ -13,5 +13,8 @@
   },
   "optionalDependencies": {
     "@rolldown/binding-win32-x64-msvc": "^1.2.0"
+  },
+  "devDependencies": {
+    "ajv": "^6.12.6"
   }
 }

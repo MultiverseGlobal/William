@@ -159,3 +159,23 @@ export async function saveMemoryNode(node: Partial<MemoryNode>): Promise<void> {
     metadata: node.metadata ?? {},
   });
 }
+
+// ─── Briefings & Calendar Events ──────────────────────────────────────────────
+export async function getBriefings() {
+  const { data } = await supabase.from('briefings').select('*').order('created_at', { ascending: false });
+  return data ?? [];
+}
+
+export async function saveBriefing(b: any) {
+  await supabase.from('briefings').upsert(b);
+}
+
+export async function getCalendarEvents() {
+  const { data } = await supabase.from('calendar_events').select('*').order('time');
+  return data ?? [];
+}
+
+export async function updateCalendarEvent(id: string, updates: any) {
+  await supabase.from('calendar_events').update(updates).eq('id', id);
+}
+

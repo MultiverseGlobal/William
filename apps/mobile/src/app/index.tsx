@@ -1,299 +1,474 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  StyleSheet,
-  Text,
   View,
-  TextInput,
+  Text,
+  StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
+  TextInput,
+  ScrollView,
   StatusBar,
-  Animated,
-  Easing,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
-import { TOKENS } from '../constants/tokens';
-import { useWilliamStore } from '../store/useWilliamStore';
-import { Starfield } from '../components/Starfield';
-import { CommandOrb } from '../components/CommandOrb';
+import { Feather } from '@expo/vector-icons';
+import { useWilliamStore, WilliamFileCard } from '../store/useWilliamStore';
+import { NaturalVoiceView } from '../components/NaturalVoiceView';
+import { OrbConstellationView } from '../components/OrbConstellationView';
+import { FileCardStack } from '../components/FileCardStack';
+import { MorphHeader } from '../components/MorphHeader';
+import { ExecutiveDock } from '../components/ExecutiveDock';
 import { ZoomCard } from '../components/ZoomCard';
-import { Feather, Ionicons } from '@expo/vector-icons';
-import {
-  setupNotificationListeners,
-  simulatePushNotificationTap,
-  simulateUrgentInterrupt,
-} from '../services/notificationService';
+
+import { useRouter } from 'expo-router';
+import { Share } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { sendChatMessage } from '../services/apiService';
+
+import { fetchActiveCommands } from '../services/dbService';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const {
-    isZoomed,
-    activeItem,
-    pendingCount,
-    headline,
-    triggerZoom,
-    dismissZoom,
-    handlePushNotification,
+    stage,
+    activeNode,
+    isEditMode,
+    queryText,
+    files,
+    nodes,
+    setStage,
+    selectNode,
+    toggleEditMode,
+    resetToListening,
+    deleteLastFile,
+    addFile,
   } = useWilliamStore();
 
-  const [inputQuery, setInputQuery] = useState('');
-  const [onboardStep, setOnboardStep] = useState(0); // 0 = normal active, 1 = onboarding welcome, 2 = calendar connect
-
-  // Animation for headline opacity fading to 0.15 during zoom
-  const headlineOpacity = useRef(new Animated.Value(1)).current;
+  const [inputMode, setInputMode] = useState<'voice' | 'text'>('text');
+  const [promptText, setPromptText] = useState('');
+  const [activeCommand, setActiveCommand] = useState<any>(null);
 
   useEffect(() => {
-    setupNotificationListeners();
+    fetchActiveCommands().then((data) => {
+      if (data && data.length > 0) {
+        setActiveCommand(data[0]);
+      }
+    });
   }, []);
 
-  useEffect(() => {
-    Animated.timing(headlineOpacity, {
-      toValue: isZoomed ? 0.15 : 1,
-      duration: TOKENS.animation.entranceDuration,
-      easing: Easing.bezier(0.16, 1, 0.3, 1),
-      useNativeDriver: true,
-    }).start();
-  }, [isZoomed, headlineOpacity]);
+  const QUICK_PROMPTS = [
+    'Show Apple meeting files',
+    "Summarize today's agenda",
+    'Check schedule conflicts',
+  ];
 
-  const handleSendQuery = () => {
-    if (!inputQuery.trim()) return;
-    const queryText = inputQuery.trim();
-    setInputQuery('');
+  const handlePromptSubmit = async (text: string) => {
+    if (!text.trim()) return;
+    const currentText = text;
+    setPromptText('');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
-    // Trigger Zoom Card for the query
-    triggerZoom({
-      id: 'query-' + Date.now(),
-      title: 'Query Result',
-      subtitle: `Prompt: "${queryText}"`,
-      body: `William processed your request: "${queryText}". All context synchronized with Chief of Staff engine.`,
-      type: 'mission',
-      actionLabel: 'Acknowledged',
+    // Open ChatGPT / Claude style AI response drawer instantly
+    setSelectedFile({
+      id: `ai_${Date.now()}`,
+      name: `William AI Companion`,
+      format: `Query: "${currentText}"`,
+      size: 'Live Executive AI Response',
+      timestamp: 'Just now',
+      iconType: 'shield',
+    });
+
+    // Fetch live AI response from backend
+    const res = await sendChatMessage(currentText);
+    setSelectedFile({
+      id: `ai_${Date.now()}`,
+      name: `William AI Companion`,
+      format: res.reply,
+      size: `Suggested Action: Open Executive Execution Plan`,
+      timestamp: res.time,
+      iconType: 'shield',
     });
   };
 
+  const [selectedFile, setSelectedFile] = useState<WilliamFileCard | null>(null);
+
+  const handleHeaderDelete = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    deleteLastFile();
+  };
+
+  const handleHeaderShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    try {
+      await Share.share({
+        message: `William Executive Briefing: ${activeNode.label} (${files.length} items)`,
+      });
+    } catch (err) {
+      console.log('Share error:', err);
+    }
+  };
+
+  const handleHeaderAdd = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    const newDoc: WilliamFileCard = {
+      id: `f_${Date.now()}`,
+      name: `Executive_Memo_${files.length + 1}`,
+      format: 'DOCX • 1.2 MB',
+      size: '1.2 MB',
+      timestamp: 'Just now',
+      iconType: 'document',
+    };
+    addFile(newDoc);
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={TOKENS.colors.background} />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ECEEF2" />
 
-      {/* Animated Starfield Background */}
-      <Starfield />
-
-      {/* Top Header Row */}
-      <View style={styles.headerRow}>
-        <View style={styles.brandTitleContainer}>
-          <Text style={styles.brandTitle}>WILLIAM</Text>
-        </View>
-
-        {/* Top-Right Notification Pill */}
-        {pendingCount > 0 && (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => triggerZoom()}
-            style={styles.notificationPill}
-          >
-            <View style={styles.dot} />
-            <Text style={styles.notificationText}>{pendingCount} new</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Main Centered Content */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.mainContent}
-      >
-        {/* Centered Glowing Command Orb */}
-        <View style={styles.orbContainer}>
-          <CommandOrb isZoomed={isZoomed} onPress={() => triggerZoom()} />
-        </View>
-
-        {/* Dynamic Headline & Greeting */}
-        <Animated.View style={[styles.textSection, { opacity: headlineOpacity }]}>
-          <Text style={styles.greetingLine}>Good morning, Kenshi</Text>
-          <Text style={styles.dynamicHeadline}>{headline}</Text>
-        </Animated.View>
-
-        {/* Simulation Shortcut Buttons (For testing Urgent Interrupt & Push Deep-Link) */}
-        {!isZoomed && (
-          <View style={styles.simRow}>
+      {/* Mode Switcher Header Pill */}
+      {stage === 'LISTENING' && (
+        <View style={styles.modeSwitcherWrapper} pointerEvents="box-none">
+          <View style={styles.modeSwitcher}>
             <TouchableOpacity
-              onPress={() => simulateUrgentInterrupt()}
-              style={styles.simBtn}
+              onPress={() => setInputMode('voice')}
+              style={[styles.modeBtn, inputMode === 'voice' && styles.modeBtnActive]}
             >
-              <Text style={styles.simBtnText}>⚡ Test Urgent Interrupt</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => simulatePushNotificationTap()}
-              style={styles.simBtn}
-            >
-              <Text style={styles.simBtnText}>🔔 Test Push Deep-Link</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Bottom Persistent Input Bar */}
-        <View style={styles.inputBarWrapper}>
-          <View style={styles.inputBar}>
-            <TextInput
-              style={styles.inputField}
-              value={inputQuery}
-              onChangeText={setInputQuery}
-              placeholder="Ask anything..."
-              placeholderTextColor={TOKENS.colors.textFaint}
-              onSubmitEditing={handleSendQuery}
-              returnKeyType="send"
-            />
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleSendQuery}
-              style={styles.sendAffordance}
-            >
-              <Ionicons
-                name="radio-button-on"
-                size={18}
-                color={TOKENS.colors.accent}
+              <Feather
+                name="mic"
+                size={13}
+                color={inputMode === 'voice' ? '#111827' : '#9CA3AF'}
               />
+              <Text
+                style={[
+                  styles.modeText,
+                  inputMode === 'voice' && styles.modeTextActive,
+                ]}
+              >
+                Voice
+              </Text>
+            </TouchableOpacity>
 
+            <TouchableOpacity
+              onPress={() => setInputMode('text')}
+              style={[styles.modeBtn, inputMode === 'text' && styles.modeBtnActive]}
+            >
+              <Feather
+                name="message-square"
+                size={13}
+                color={inputMode === 'text' ? '#111827' : '#9CA3AF'}
+              />
+              <Text
+                style={[
+                  styles.modeText,
+                  inputMode === 'text' && styles.modeTextActive,
+                ]}
+              >
+                Text Prompt
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      )}
 
-      {/* Zoom Card Component */}
+      {/* Stage 1: Natural Voice Listening or Text Prompt View */}
+      {stage === 'LISTENING' && (
+        <>
+          {inputMode === 'voice' ? (
+            <NaturalVoiceView
+              queryText={queryText}
+              onVoiceComplete={() => setStage('PROCESSING')}
+            />
+          ) : (
+            <View style={styles.textPromptContainer}>
+              {/* Daily Command Hero Card */}
+              <View style={styles.dailyCommandCard}>
+                <View style={styles.dailyCommandHeader}>
+                  <View style={styles.commandTag}>
+                    <Feather name="zap" size={12} color="#2563EB" />
+                    <Text style={styles.commandTagText}>DAILY COMMAND</Text>
+                  </View>
+                  <Text style={styles.commandTime}>{activeCommand?.estimated_duration || '45m'}</Text>
+                </View>
+                <Text style={styles.commandTitle}>
+                  {activeCommand?.title || 'Finalize Chief of Staff Platform Architecture'}
+                </Text>
+                <Text style={styles.commandSubtitle}>High-leverage focus: Execution state & context adapters.</Text>
+                <TouchableOpacity
+                  style={styles.startCommandBtn}
+                  onPress={() => handlePromptSubmit(`Start Focus Session: ${activeCommand?.title || 'Platform Architecture'}`)}
+                >
+                  <Feather name="play-circle" size={16} color="#FFFFFF" />
+                  <Text style={styles.startCommandText}>Start Focus Session</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Suggestions */}
+              <View style={styles.chipsRow}>
+                {QUICK_PROMPTS.map((chip, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.chip}
+                    onPress={() => handlePromptSubmit(chip)}
+                  >
+                    <Feather name="zap" size={11} color="#4B5563" />
+                    <Text style={styles.chipText}>{chip}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Input Bar */}
+              <View style={styles.inputBar}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Tell William what to pull up..."
+                  placeholderTextColor="#9CA3AF"
+                  value={promptText}
+                  onChangeText={setPromptText}
+                  onSubmitEditing={() => handlePromptSubmit(promptText)}
+                />
+                <TouchableOpacity
+                  style={styles.sendBtn}
+                  onPress={() => handlePromptSubmit(promptText)}
+                >
+                  <Feather name="arrow-up" size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </>
+      )}
+
+      {/* Stage 2 & 3: Unified 60 FPS Spinning Orb + Particle Explosion + Constellation Nodes */}
+      {(stage === 'PROCESSING' || stage === 'CONSTELLATION') && (
+        <OrbConstellationView
+          nodes={nodes}
+          onSelectNode={(node) => selectNode(node)}
+          onBack={() => resetToListening()}
+          autoExplode={true}
+        />
+      )}
+
+      {/* Stage 4 & 5: File Card Stack + Edit Mode */}
+      {(stage === 'FILE_STACK' || stage === 'EDIT_MODE') && (
+        <View style={styles.stackWrapper}>
+          <MorphHeader
+            title={activeNode.label}
+            fileCount={files.length}
+            isEditMode={isEditMode}
+            onBack={() => setStage('CONSTELLATION')}
+            onToggleEdit={toggleEditMode}
+            onDeleteAction={handleHeaderDelete}
+            onShareAction={handleHeaderShare}
+            onAddAction={handleHeaderAdd}
+          />
+
+          <FileCardStack
+            files={files}
+            isEditMode={isEditMode}
+            onSelectFile={(file) => setSelectedFile(file)}
+          />
+        </View>
+      )}
+
+      {/* Executive Briefing Detail Drawer Popup */}
       <ZoomCard
-        visible={isZoomed}
-        item={activeItem}
-        onDismiss={dismissZoom}
+        visible={!!selectedFile}
+        fileCard={selectedFile}
+        onDismiss={() => setSelectedFile(null)}
+        onAction={(action) => console.log('Executed:', action)}
       />
-    </SafeAreaView>
+
+      {/* Floating Bottom Navigation Dock (Hidden during fullscreen ChatGPT-style Voice Listening) */}
+      {!(stage === 'LISTENING' && inputMode === 'voice') && (
+        <ExecutiveDock onResetOrb={() => setStage('PROCESSING')} />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: TOKENS.colors.background,
+    backgroundColor: '#ECEEF2',
   },
-  headerRow: {
+  modeSwitcherWrapper: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 80,
+  },
+  modeSwitcher: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 3,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.04)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+  },
+  modeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  modeBtnActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+  },
+  modeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#9CA3AF',
+  },
+  modeTextActive: {
+    color: '#111827',
+    fontWeight: '600',
+  },
+  textPromptContainer: {
+    flex: 1,
+    paddingHorizontal: 24,
+    justifyContent: 'center',
+  },
+  dailyCommandCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  dailyCommandHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'android' ? 16 : 8,
-    height: 54,
-    zIndex: 20,
+    marginBottom: 8,
   },
-  brandTitleContainer: {
+  commandTag: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  brandTitle: {
-    fontSize: 12,
-    fontFamily: TOKENS.fonts.data,
-    color: TOKENS.colors.textFaint,
-    letterSpacing: 2,
+  commandTagText: {
+    fontSize: 10,
     fontWeight: '700',
+    color: '#2563EB',
+    letterSpacing: 0.5,
   },
-  notificationPill: {
+  commandTime: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  commandTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  commandSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 14,
+  },
+  startCommandBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: TOKENS.colors.surface,
+    justifyContent: 'center',
+    backgroundColor: '#111827',
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 8,
+  },
+  startCommandText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  promptHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  promptTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 6,
+  },
+  promptSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 24,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: TOKENS.colors.border,
+    borderColor: '#E5E7EB',
     gap: 6,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: TOKENS.colors.accent,
-  },
-  notificationText: {
+  chipText: {
     fontSize: 12,
-    fontFamily: TOKENS.fonts.data,
-    color: TOKENS.colors.textPrimary,
     fontWeight: '500',
-  },
-  mainContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  orbContainer: {
-    marginTop: 20,
-    marginBottom: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  textSection: {
-    alignItems: 'center',
-    textAlign: 'center',
-    paddingHorizontal: 16,
-    marginTop: 10,
-  },
-  greetingLine: {
-    fontSize: 13,
-    color: TOKENS.colors.textMuted,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  dynamicHeadline: {
-    fontSize: 26,
-    color: TOKENS.colors.textPrimary,
-    textAlign: 'center',
-    lineHeight: 34,
-    fontWeight: '300',
-    maxWidth: 320,
-  },
-  simRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 20,
-  },
-  simBtn: {
-    backgroundColor: TOKENS.colors.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: TOKENS.colors.border,
-  },
-  simBtnText: {
-    fontSize: 10,
-    color: TOKENS.colors.textMuted,
-    fontFamily: TOKENS.fonts.data,
-  },
-  inputBarWrapper: {
-    position: 'absolute',
-    bottom: 24,
-    left: 24,
-    right: 24,
+    color: '#374151',
   },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: TOKENS.colors.surface,
-    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingLeft: 16,
+    paddingRight: 6,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderColor: TOKENS.colors.border,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    borderColor: '#E5E7EB',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.04,
     shadowRadius: 10,
-    elevation: 8,
   },
-  inputField: {
+  textInput: {
     flex: 1,
     fontSize: 14,
-    color: TOKENS.colors.textPrimary,
-    paddingVertical: 2,
+    color: '#111827',
   },
-  sendAffordance: {
-    padding: 6,
+  sendBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#111827',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stackWrapper: {
+    flex: 1,
+    position: 'relative',
   },
 });
