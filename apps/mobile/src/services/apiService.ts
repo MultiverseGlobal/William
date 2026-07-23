@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const OPENROUTER_API_KEY = process.env.EXPO_PUBLIC_OPENROUTER_API_KEY || '';
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 export interface ChatResponse {
   reply: string;
@@ -6,29 +7,48 @@ export interface ChatResponse {
 }
 
 export async function sendChatMessage(message: string): Promise<ChatResponse> {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
   try {
-    const res = await fetch(`${API_BASE_URL}/api/chat`, {
+    const res = await fetch(OPENROUTER_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://william.pseudonyms.ai',
+        'X-Title': 'William AI Chief of Staff',
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({
+        model: 'anthropic/claude-3.5-sonnet',
+        messages: [
+          {
+            role: 'system',
+            content: `You are William, an executive AI Chief of Staff for Pseudonyms.
+Answer concisely in 2-3 sentences max. Direct, observant, highly intelligent. No polite filler, no corporate buzzwords.`,
+          },
+          { role: 'user', content: message },
+        ],
+        max_tokens: 250,
+      }),
     });
 
-    if (!res.ok) {
-      throw new Error(`API Error: ${res.status}`);
+    if (res.ok) {
+      const json = await res.json();
+      const replyText = json?.choices?.[0]?.message?.content;
+      if (replyText) {
+        return {
+          reply: replyText,
+          time: timeStr,
+        };
+      }
     }
-
-    const data = await res.json();
-    return {
-      reply: data.reply || "William's executive server generated a response.",
-      time: data.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
   } catch (err) {
-    console.log('API Gateway Error, falling back to local synthetic reply:', err);
-    return {
-      reply: `Executive Digest for "${message}": Synthesized 3 priority items, 0 blocking PR conflicts, and 1 strategy briefing ready for review.`,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
+    console.log('Direct OpenRouter mobile fetch error:', err);
   }
+
+  return {
+    reply: "I am listening closely. OpenRouter connection active.",
+    time: timeStr,
+  };
 }

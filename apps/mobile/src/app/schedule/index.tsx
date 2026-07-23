@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, TextInput, Modal } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { ExecutiveDock } from '../../components/ExecutiveDock';
 import { ZoomCard } from '../../components/ZoomCard';
 import { resolveCalendarConflict, CalendarEvent } from '../../services/calendarService';
-import { fetchCalendarEvents } from '../../services/dbService';
+import { fetchCalendarEvents, createNewCalendarEvent } from '../../services/dbService';
 import { WilliamFileCard } from '../../store/useWilliamStore';
 
 export default function ScheduleScreen() {
   const router = useRouter();
   const [selectedEvent, setSelectedEvent] = useState<WilliamFileCard | null>(null);
+
+  // Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newTime, setNewTime] = useState('14:00 PM');
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -23,7 +28,7 @@ export default function ScheduleScreen() {
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
 
-  useEffect(() => {
+  const loadEvents = () => {
     fetchCalendarEvents().then((data) => {
       if (data && data.length > 0) {
         setEvents(data.map(d => ({
@@ -37,7 +42,27 @@ export default function ScheduleScreen() {
         })));
       }
     });
+  };
+
+  useEffect(() => {
+    loadEvents();
   }, []);
+
+  const handleCreateEvent = async () => {
+    if (!newTitle.trim()) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    const title = newTitle;
+    const time = newTime;
+    setNewTitle('');
+    setShowAddModal(false);
+
+    try {
+      await createNewCalendarEvent(title, time, 'Private Workstation');
+      loadEvents();
+    } catch (err) {
+      console.log('Error saving event to Supabase:', err);
+    }
+  };
 
   const handleAcceptReschedule = (eventId: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -57,18 +82,11 @@ export default function ScheduleScreen() {
         <TouchableOpacity
           style={styles.iconBtn}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-            setSelectedEvent({
-              id: 'cal_info',
-              name: 'Google Calendar Sync',
-              format: 'Timeline: 3 events scheduled today',
-              size: 'Auto-Protection Active',
-              timestamp: 'Updated just now',
-              iconType: 'calendar',
-            });
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            setShowAddModal(true);
           }}
         >
-          <Feather name="calendar" size={18} color="#111827" />
+          <Feather name="plus" size={20} color="#111827" />
         </TouchableOpacity>
       </View>
 
@@ -78,23 +96,10 @@ export default function ScheduleScreen() {
           <Text style={styles.dateLabel}>TODAY • THURSDAY</Text>
           <Text style={styles.headlineText}>20 minutes ahead of schedule</Text>
         </View>
-        <TouchableOpacity
-          style={styles.aiBadge}
-          onPress={() => {
-            Haptics.selectionAsync().catch(() => {});
-            setSelectedEvent({
-              id: 'ai_rule',
-              name: 'Chief of Staff Auto-Protection',
-              format: 'Rule: Deep work window protected from 09:30 AM to 11:30 AM',
-              size: 'Status: Active',
-              timestamp: 'Today',
-              iconType: 'shield',
-            });
-          }}
-        >
+        <View style={styles.aiBadge}>
           <Feather name="zap" size={12} color="#2563EB" />
           <Text style={styles.aiBadgeText}>AI Managed</Text>
-        </TouchableOpacity>
+        </View>
       </View>
 
       {/* Timeline */}
@@ -141,13 +146,37 @@ export default function ScheduleScreen() {
         ))}
       </ScrollView>
 
-      {/* Calendar Detail Drawer Popup */}
-      <ZoomCard
-        visible={!!selectedEvent}
-        fileCard={selectedEvent}
-        onDismiss={() => setSelectedEvent(null)}
-        onAction={(action) => console.log('Executed:', action)}
-      />
+      {/* Modal: + New Schedule Event Creator */}
+      <Modal visible={showAddModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>New Timeline Event</Text>
+              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                <Feather name="x" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Event Title (e.g. Leadership Strategy Sync)"
+              placeholderTextColor="#9CA3AF"
+              value={newTitle}
+              onChangeText={setNewTitle}
+              autoFocus
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Scheduled Time (e.g. 14:00 PM)"
+              placeholderTextColor="#9CA3AF"
+              value={newTime}
+              onChangeText={setNewTime}
+            />
+            <TouchableOpacity style={styles.modalSubmitBtn} onPress={handleCreateEvent}>
+              <Text style={styles.modalSubmitText}>Save to Supabase Cloud</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Floating Bottom Navigation Dock */}
       <ExecutiveDock />
@@ -321,6 +350,48 @@ const styles = StyleSheet.create({
   rescheduleBtnText: {
     fontSize: 11,
     fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalInput: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 14,
+    padding: 14,
+    fontSize: 15,
+    color: '#111827',
+    marginBottom: 16,
+  },
+  modalSubmitBtn: {
+    backgroundColor: '#111827',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  modalSubmitText: {
+    fontSize: 14,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
 });

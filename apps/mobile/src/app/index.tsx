@@ -86,23 +86,13 @@ export default function HomeScreen() {
     setPromptText('');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
-    // Open ChatGPT / Claude style AI response drawer instantly
-    setSelectedFile({
-      id: `ai_${Date.now()}`,
-      name: `William AI Companion`,
-      format: `Query: "${currentText}"`,
-      size: 'Live Executive AI Response',
-      timestamp: 'Just now',
-      iconType: 'shield',
-    });
-
-    // Fetch live AI response from backend
+    // Stream real Claude 3.5 Sonnet response directly from OpenRouter
     const res = await sendChatMessage(currentText);
     setSelectedFile({
-      id: `ai_${Date.now()}`,
-      name: `William AI Companion`,
+      id: `chat_${Date.now()}`,
+      name: `William AI (Claude 3.5 Sonnet)`,
       format: res.reply,
-      size: `Suggested Action: Open Executive Execution Plan`,
+      size: `Query: "${currentText}"`,
       timestamp: res.time,
       iconType: 'shield',
     });

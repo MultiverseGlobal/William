@@ -1,4 +1,5 @@
-// Metaphor Context Adapter — Fetches long-term knowledge & document summaries from Metaphor
+import { supabaseMobile } from './supabaseClient';
+
 export interface MetaphorDocument {
   id: string;
   title: string;
@@ -9,22 +10,22 @@ export interface MetaphorDocument {
 
 export async function fetchMetaphorContext(query: string): Promise<MetaphorDocument[]> {
   try {
-    const res = await fetch(`http://localhost:3000/api/data?table=library`);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        return data.filter(d => d.title.toLowerCase().includes(query.toLowerCase()) || d.content?.toLowerCase().includes(query.toLowerCase()));
-      }
+    const { data, error } = await supabaseMobile
+      .from('briefings')
+      .select('*');
+
+    if (!error && data) {
+      const mapped = data.map(d => ({
+        id: d.id,
+        title: d.title,
+        summary: d.body || d.subtitle,
+        tags: [d.type || 'Context'],
+      }));
+      if (!query.trim()) return mapped;
+      return mapped.filter(m => m.title.toLowerCase().includes(query.toLowerCase()) || m.summary.toLowerCase().includes(query.toLowerCase()));
     }
   } catch (err) {
-    console.log('Metaphor Adapter: Error fetching context, using fallback:', err);
+    console.log('Metaphor Adapter fetch error:', err);
   }
-  return [
-    {
-      id: 'm1',
-      title: 'Pseudonyms Strategic Positioning Q3',
-      summary: 'Executive analysis of AI companion market alignment, leverage compounding, and user focus.',
-      tags: ['Strategy', 'Executive'],
-    },
-  ];
+  return [];
 }

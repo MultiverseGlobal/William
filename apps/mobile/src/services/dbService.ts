@@ -141,3 +141,21 @@ export async function createNewCalendarEvent(title: string, time: string, locati
   if (error) throw error;
   return data;
 }
+
+// 8. Direct Supabase Cloud Write: Create New Executive Briefing
+export async function createNewBriefing(title: string, body: string, urgent = false): Promise<any> {
+  const { data, error } = await supabaseMobile
+    .from('briefings')
+    .insert({
+      title,
+      subtitle: `${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Executive Briefing`,
+      body,
+      urgent,
+      type: urgent ? 'urgent' : 'digest',
+      time: 'Just now',
+    })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data;
+}

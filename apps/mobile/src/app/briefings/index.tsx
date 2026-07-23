@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Share, TextInput, Modal } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { ExecutiveDock } from '../../components/ExecutiveDock';
 import { ZoomCard } from '../../components/ZoomCard';
-import { fetchBriefings } from '../../services/dbService';
+import { fetchBriefings, createNewBriefing } from '../../services/dbService';
 import { WilliamFileCard } from '../../store/useWilliamStore';
 
 export default function BriefingsScreen() {
@@ -15,13 +15,39 @@ export default function BriefingsScreen() {
   const [selectedBriefing, setSelectedBriefing] = useState<WilliamFileCard | null>(null);
   const [briefingsList, setBriefingsList] = useState<any[]>([]);
 
-  useEffect(() => {
+  // Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newBody, setNewBody] = useState('');
+
+  const loadBriefings = () => {
     fetchBriefings().then((data) => {
       if (data && data.length > 0) {
         setBriefingsList(data);
       }
     });
+  };
+
+  useEffect(() => {
+    loadBriefings();
   }, []);
+
+  const handleCreateBriefing = async () => {
+    if (!newTitle.trim()) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    const title = newTitle;
+    const body = newBody || 'Executive briefing summary compiled.';
+    setNewTitle('');
+    setNewBody('');
+    setShowAddModal(false);
+
+    try {
+      await createNewBriefing(title, body, false);
+      loadBriefings();
+    } catch (err) {
+      console.log('Error creating briefing in Supabase:', err);
+    }
+  };
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -73,11 +99,11 @@ export default function BriefingsScreen() {
         <TouchableOpacity
           style={styles.iconBtn}
           onPress={() => {
-            Haptics.selectionAsync().catch(() => {});
-            setFilter(prev => prev === 'all' ? 'urgent' : prev === 'urgent' ? 'digest' : 'all');
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            setShowAddModal(true);
           }}
         >
-          <Feather name="sliders" size={18} color="#111827" />
+          <Feather name="plus" size={20} color="#111827" />
         </TouchableOpacity>
       </View>
 
@@ -149,13 +175,38 @@ export default function BriefingsScreen() {
         ))}
       </ScrollView>
 
-      {/* Detail Drawer Popup */}
-      <ZoomCard
-        visible={!!selectedBriefing}
-        fileCard={selectedBriefing}
-        onDismiss={() => setSelectedBriefing(null)}
-        onAction={(action) => console.log('Executed:', action)}
-      />
+      {/* Modal: + New Executive Briefing Creator */}
+      <Modal visible={showAddModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>New Executive Briefing</Text>
+              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                <Feather name="x" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Briefing Title (e.g. Q3 Growth Alignment)"
+              placeholderTextColor="#9CA3AF"
+              value={newTitle}
+              onChangeText={setNewTitle}
+              autoFocus
+            />
+            <TextInput
+              style={[styles.modalInput, { height: 80 }]}
+              placeholder="Briefing details & key takeaways..."
+              placeholderTextColor="#9CA3AF"
+              value={newBody}
+              onChangeText={setNewBody}
+              multiline
+            />
+            <TouchableOpacity style={styles.modalSubmitBtn} onPress={handleCreateBriefing}>
+              <Text style={styles.modalSubmitText}>Save to Supabase Cloud</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Floating Bottom Navigation Dock */}
       <ExecutiveDock />
@@ -320,5 +371,47 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalInput: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 14,
+    padding: 14,
+    fontSize: 15,
+    color: '#111827',
+    marginBottom: 16,
+  },
+  modalSubmitBtn: {
+    backgroundColor: '#111827',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  modalSubmitText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
