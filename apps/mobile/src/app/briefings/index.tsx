@@ -202,7 +202,7 @@ export default function BriefingsScreen() {
               multiline
             />
             <TouchableOpacity style={styles.modalSubmitBtn} onPress={handleCreateBriefing}>
-              <Text style={styles.modalSubmitText}>Save to Supabase Cloud</Text>
+              <Text style={styles.modalSubmitText}>Save Briefing</Text>
             </TouchableOpacity>
           </View>
         </View>

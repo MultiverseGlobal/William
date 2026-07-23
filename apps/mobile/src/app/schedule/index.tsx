@@ -172,7 +172,7 @@ export default function ScheduleScreen() {
               onChangeText={setNewTime}
             />
             <TouchableOpacity style={styles.modalSubmitBtn} onPress={handleCreateEvent}>
-              <Text style={styles.modalSubmitText}>Save to Supabase Cloud</Text>
+              <Text style={styles.modalSubmitText}>Save Event</Text>
             </TouchableOpacity>
           </View>
         </View>

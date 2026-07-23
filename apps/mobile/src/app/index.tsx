@@ -320,7 +320,7 @@ export default function HomeScreen() {
               autoFocus
             />
             <TouchableOpacity style={styles.modalSubmitBtn} onPress={handleCreateNewCommand}>
-              <Text style={styles.modalSubmitText}>Save to Supabase Cloud</Text>
+              <Text style={styles.modalSubmitText}>Save Action</Text>
             </TouchableOpacity>
           </View>
         </View>

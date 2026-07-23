@@ -103,11 +103,11 @@ const useTypewriter = (text: string, speed: number = 55) => {
 };
 
 export const NaturalVoiceView: React.FC<NaturalVoiceViewProps> = ({
-  queryText = 'Listening for voice command...\nHow can William assist you?',
+  queryText = 'Tap mic to speak with William...\nHands-free AI voice active.',
   onVoiceComplete,
 }) => {
   const [isListening, setIsListening] = useState(false);
-  const activeText = isListening ? 'Listening out loud...\nSay your prompt now' : queryText;
+  const activeText = queryText;
   const cursorOpacity = useSharedValue(1);
   const wavePhase = useSharedValue(0);
   const waveAmp = useSharedValue(8);
