@@ -63,7 +63,7 @@ Rules for your response:
 export async function callAI(systemPrompt: string, userPrompt: string, maxTokens = 300): Promise<string> {
   const omniUrl = process.env.OMNIROUTE_URL;
   const omniKey = process.env.OMNIROUTE_API_KEY;
-  const omniModel = process.env.OMNIROUTE_MODEL || 'gpt-4o-mini';
+  const omniModel = process.env.OMNIROUTE_MODEL || 'anthropic/claude-4.5-sonnet';
 
   const geminiKey = process.env.GEMINI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
@@ -73,7 +73,11 @@ export async function callAI(systemPrompt: string, userPrompt: string, maxTokens
   if (omniUrl) {
     try {
       const endpoint = `${omniUrl.replace(/\/+$/, '')}/chat/completions`;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://william.pseudonyms.ai',
+        'X-Title': 'William AI Chief of Staff',
+      };
       if (omniKey) headers['Authorization'] = `Bearer ${omniKey}`;
 
       const res = await fetch(endpoint, {
