@@ -7,6 +7,7 @@ import {
   TextInput,
   ScrollView,
   StatusBar,
+  Modal,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useWilliamStore, WilliamFileCard } from '../store/useWilliamStore';
@@ -22,7 +23,7 @@ import { Share } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { sendChatMessage } from '../services/apiService';
 
-import { fetchActiveCommands } from '../services/dbService';
+import { fetchActiveCommands, createNewCommand } from '../services/dbService';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -45,6 +46,11 @@ export default function HomeScreen() {
   const [promptText, setPromptText] = useState('');
   const [activeCommand, setActiveCommand] = useState<any>(null);
 
+  // Modal States
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showFocusModal, setShowFocusModal] = useState(false);
+  const [newItemTitle, setNewItemTitle] = useState('');
+
   useEffect(() => {
     fetchActiveCommands().then((data) => {
       if (data && data.length > 0) {
@@ -52,6 +58,21 @@ export default function HomeScreen() {
       }
     });
   }, []);
+
+  const handleCreateNewCommand = async () => {
+    if (!newItemTitle.trim()) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    const title = newItemTitle;
+    setNewItemTitle('');
+    setShowAddModal(false);
+
+    try {
+      const created = await createNewCommand(title, '30m');
+      setActiveCommand(created);
+    } catch (err) {
+      console.log('Error creating command in Supabase:', err);
+    }
+  };
 
   const QUICK_PROMPTS = [
     'Show Apple meeting files',
@@ -192,7 +213,10 @@ export default function HomeScreen() {
                 <Text style={styles.commandSubtitle}>High-leverage focus: Execution state & context adapters.</Text>
                 <TouchableOpacity
                   style={styles.startCommandBtn}
-                  onPress={() => handlePromptSubmit(`Start Focus Session: ${activeCommand?.title || 'Platform Architecture'}`)}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                    setShowFocusModal(true);
+                  }}
                 >
                   <Feather name="play-circle" size={16} color="#FFFFFF" />
                   <Text style={styles.startCommandText}>Start Focus Session</Text>
@@ -230,6 +254,18 @@ export default function HomeScreen() {
                   <Feather name="arrow-up" size={16} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
+
+              {/* Floating + New Executive Action Item Button */}
+              <TouchableOpacity
+                style={styles.floatingAddBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+                  setShowAddModal(true);
+                }}
+              >
+                <Feather name="plus" size={20} color="#FFFFFF" />
+                <Text style={styles.floatingAddText}>New Action</Text>
+              </TouchableOpacity>
             </View>
           )}
         </>
@@ -274,6 +310,58 @@ export default function HomeScreen() {
         onDismiss={() => setSelectedFile(null)}
         onAction={(action) => console.log('Executed:', action)}
       />
+
+      {/* Modal 1: + New Action Item Creator */}
+      <Modal visible={showAddModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>New Daily Command Action</Text>
+              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                <Feather name="x" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="e.g. Finalize Pseudonyms Architecture"
+              placeholderTextColor="#9CA3AF"
+              value={newItemTitle}
+              onChangeText={setNewItemTitle}
+              autoFocus
+            />
+            <TouchableOpacity style={styles.modalSubmitBtn} onPress={handleCreateNewCommand}>
+              <Text style={styles.modalSubmitText}>Save to Supabase Cloud</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal 2: Focus Session Timer Overlay */}
+      <Modal visible={showFocusModal} transparent animationType="fade">
+        <View style={styles.focusOverlay}>
+          <View style={styles.focusBox}>
+            <View style={styles.focusBadge}>
+              <Feather name="zap" size={14} color="#2563EB" />
+              <Text style={styles.focusBadgeText}>DEEP WORK FOCUS ACTIVE</Text>
+            </View>
+            <Text style={styles.focusTitle}>
+              {activeCommand?.title || 'Finalize Platform Architecture'}
+            </Text>
+            <Text style={styles.focusTimerText}>44 : 58</Text>
+            <Text style={styles.focusSubText}>Notifications silenced • High-agency mode</Text>
+            <TouchableOpacity
+              style={styles.focusStopBtn}
+              onPress={() => {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                setShowFocusModal(false);
+              }}
+            >
+              <Feather name="check-circle" size={16} color="#FFFFFF" />
+              <Text style={styles.focusStopText}>Complete Focus Block</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Floating Bottom Navigation Dock (Hidden during fullscreen ChatGPT-style Voice Listening) */}
       {!(stage === 'LISTENING' && inputMode === 'voice') && (
@@ -470,5 +558,133 @@ const styles = StyleSheet.create({
   stackWrapper: {
     flex: 1,
     position: 'relative',
+  },
+  floatingAddBtn: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    gap: 6,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  floatingAddText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalInput: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 14,
+    padding: 14,
+    fontSize: 15,
+    color: '#111827',
+    marginBottom: 16,
+  },
+  modalSubmitBtn: {
+    backgroundColor: '#111827',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  modalSubmitText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  focusOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(17, 24, 39, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  focusBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 28,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 340,
+  },
+  focusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  focusBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563EB',
+    letterSpacing: 0.5,
+  },
+  focusTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  focusTimerText: {
+    fontSize: 48,
+    fontWeight: '800',
+    color: '#111827',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  focusSubText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 24,
+  },
+  focusStopBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#059669',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
+    gap: 8,
+  },
+  focusStopText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
