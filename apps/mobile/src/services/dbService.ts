@@ -71,11 +71,7 @@ const getBaseUrl = (): string => {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
-  // Android emulator uses 10.0.2.2 to reach host localhost
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3005';
-  }
-  return 'http://localhost:3005';
+  return 'https://pseudonyms.vercel.app';
 };
 
 const SERVER_URL = getBaseUrl();
