@@ -1,7 +1,7 @@
 /**
- * InsightsScreen — Pillowtalk style patterns and summaries
+ * InsightsScreen — Media insights via Clario + Gemini
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,51 +9,106 @@ import {
   ScrollView,
   SafeAreaView,
   StatusBar,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { ExecutiveDock } from '../../components/ExecutiveDock';
 
 export default function InsightsScreen() {
+  const [url, setUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState('');
+  const [error, setError] = useState('');
+
+  const handleTranscribe = async () => {
+    if (!url || !apiKey) {
+      setError('Please provide both URL and Gemini API Key.');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    setResult('');
+    
+    try {
+      // Clario is locally hosted or cloud hosted. For now, assuming localhost or a cloud URL.
+      // We will point it to localhost:8000 for local Clario dev, or replace with cloud URL later.
+      const res = await fetch('http://192.168.1.100:8000/api/v1/insights/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, gemini_api_key: apiKey })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Transcription failed');
+      
+      setResult(data.insights);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>insights</Text>
+        <Text style={styles.headerTitle}>media insights</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         <View style={styles.summarySection}>
-          <Text style={styles.sectionLabel}>recent themes</Text>
-          <View style={styles.themeChips}>
-            <View style={[styles.chip, { backgroundColor: Colors.sectionTeal }]}>
-              <Text style={styles.chipText}>architecture (12)</Text>
-            </View>
-            <View style={[styles.chip, { backgroundColor: Colors.sectionLavender }]}>
-              <Text style={styles.chipText}>velocity (8)</Text>
-            </View>
-            <View style={[styles.chip, { backgroundColor: Colors.sectionSage }]}>
-              <Text style={styles.chipText}>burnout (3)</Text>
-            </View>
+          <Text style={styles.sectionLabel}>extract core ideas from video</Text>
+          <Text style={{ color: Colors.textSecondary, marginBottom: 16 }}>
+            Paste a YouTube or TikTok link. Clario will extract the audio and Gemini will summarize the core ideas so you don't forget.
+          </Text>
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Video URL (e.g. https://youtube.com/...)"
+            placeholderTextColor={Colors.textMuted}
+            value={url}
+            onChangeText={setUrl}
+            autoCapitalize="none"
+          />
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Gemini API Key"
+            placeholderTextColor={Colors.textMuted}
+            value={apiKey}
+            onChangeText={setApiKey}
+            secureTextEntry
+          />
+          
+          <TouchableOpacity 
+            style={styles.button} 
+            onPress={handleTranscribe}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={Colors.bg} />
+            ) : (
+              <Text style={styles.buttonText}>Extract Core Ideas</Text>
+            )}
+          </TouchableOpacity>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        </View>
+
+        {result ? (
+          <View style={styles.insightCard}>
+            <Text style={styles.insightIcon}>🧠</Text>
+            <Text style={styles.insightHeadline}>Key Takeaways</Text>
+            <Text style={styles.insightBody}>{result}</Text>
           </View>
-        </View>
-
-        <View style={styles.insightCard}>
-          <Text style={styles.insightIcon}>✨</Text>
-          <Text style={styles.insightHeadline}>you've been focused on systems.</Text>
-          <Text style={styles.insightBody}>
-            over the last week, 60% of your entries revolve around improving internal systems rather than output. this indicates a shift in your priority towards leverage.
-          </Text>
-        </View>
-
-        <View style={styles.insightCard}>
-          <Text style={styles.insightIcon}>💡</Text>
-          <Text style={styles.insightHeadline}>afternoon anxiety spike.</Text>
-          <Text style={styles.insightBody}>
-            you frequently record entries categorized as "anxiety" or "overwhelm" between 2 PM and 4 PM. consider taking a proactive break during this block.
-          </Text>
-        </View>
+        ) : null}
 
       </ScrollView>
 
@@ -91,23 +146,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textMuted,
     fontWeight: '500',
-    marginBottom: 16,
+    marginBottom: 8,
     letterSpacing: 0.5,
   },
-  themeChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+  input: {
+    backgroundColor: Colors.bgElevated,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    borderRadius: 12,
+    padding: 16,
+    color: Colors.textPrimary,
+    marginBottom: 12,
+    fontSize: 15,
   },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+  button: {
+    backgroundColor: Colors.textPrimary,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
   },
-  chipText: {
-    color: '#0B0D08',
-    fontSize: 13,
+  buttonText: {
+    color: Colors.bg,
     fontWeight: '600',
+    fontSize: 15,
+  },
+  errorText: {
+    color: '#EF4444',
+    marginTop: 12,
+    fontSize: 14,
   },
   insightCard: {
     backgroundColor: Colors.bgElevated,
