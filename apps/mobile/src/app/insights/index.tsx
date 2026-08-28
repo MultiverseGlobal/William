@@ -34,9 +34,8 @@ export default function InsightsScreen() {
     setResult('');
     
     try {
-      // Clario is locally hosted or cloud hosted. For now, assuming localhost or a cloud URL.
-      // We will point it to localhost:8000 for local Clario dev, or replace with cloud URL later.
-      const res = await fetch('http://192.168.1.100:8000/api/v1/insights/transcribe', {
+      const clarioUrl = process.env.EXPO_PUBLIC_CLARIO_URL || 'http://192.168.1.100:8000';
+      const res = await fetch(`${clarioUrl}/api/v1/insights/transcribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, gemini_api_key: apiKey })
