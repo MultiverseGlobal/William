@@ -4,13 +4,13 @@
  */
 import { Colors } from '../theme/colors';
 import React, { useEffect, useState } from 'react';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, usePathname, useGlobalSearchParams } from 'expo-router';
 import { KeyboardAvoidingView, Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SplashEntry } from '../components/SplashEntry';
-// import * as Notifications from 'expo-notifications';
-// import { registerForPushNotificationsAsync } from '../services/notificationService';
+import { HandoffReceiver } from '../components/HandoffReceiver';
+import { useHandoffBroadcast } from '../hooks/useHandoff';
 import { useOrionStore } from '../store/useOrionStore';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -19,18 +19,19 @@ const LAST_OPENED_KEY = 'orion_last_opened_date';
 
 export default function RootLayout() {
   const router = useRouter();
+  const pathname = usePathname();
+  const params = useGlobalSearchParams();
   const [isReady, setIsReady] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [isColdStart, setIsColdStart] = useState(true);
   const { handlePushNotification } = useOrionStore();
 
-  useEffect(() => {
-    // let responseListener: Notifications.Subscription;
-    // let notificationListener: Notifications.Subscription;
+  // Hardcoded user ID for testing the magic handoff
+  useHandoffBroadcast("89a5843a-23b6-411a-ab60-123456789abc", pathname, new URLSearchParams(params as any).toString());
 
+  useEffect(() => {
     async function prepare() {
       try {
-        // Determine cold vs warm start
         const today = new Date().toDateString();
         const lastOpened = await AsyncStorage.getItem(LAST_OPENED_KEY);
         if (lastOpened === today) {
@@ -39,18 +40,6 @@ export default function RootLayout() {
           setIsColdStart(true);
           await AsyncStorage.setItem(LAST_OPENED_KEY, today);
         }
-
-        // Push notifications disabled for Expo Go compatibility
-        // const token = await registerForPushNotificationsAsync();
-        // if (token) {
-        //   await AsyncStorage.setItem('orion_push_token', token);
-        // }
-
-        // notificationListener = Notifications.addNotificationReceivedListener(() => {});
-        // responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
-        //   handlePushNotification({ ... });
-        // });
-
         setIsReady(true);
         await SplashScreen.hideAsync().catch(() => {});
       } catch (err) {
@@ -59,11 +48,6 @@ export default function RootLayout() {
       }
     }
     prepare();
-
-    return () => {
-      // if (responseListener) responseListener.remove();
-      // if (notificationListener) notificationListener.remove();
-    };
   }, []);
 
   if (!isReady) return null;
@@ -81,6 +65,10 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: Colors.bg },
         }}
       />
+      
+      {/* Magic Handoff Global Overlay */}
+      <HandoffReceiver />
+
       {showSplash && (
         <SplashEntry
           isColdStart={isColdStart}
