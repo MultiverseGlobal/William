@@ -1,4 +1,4 @@
-﻿import express, { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import type { Portrait, Journey, LibraryItem, RealtimeInsight, ActionRequest } from '@orion/types';
@@ -1058,6 +1058,56 @@ app.post('/api/metaphor/webhook', async (req: Request, res: Response) => {
     console.error('Webhook error:', error);
     res.status(500).json({ error: (error as Error).message });
   }
+});
+
+// ─── External Database Sync (Supabase) ────────────────────────────────────────
+
+import { createClient } from '@supabase/supabase-js';
+
+const getSupabaseClient = () => {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
+};
+
+app.get('/api/leads', async (req: Request, res: Response) => {
+  try {
+    const supabase = getSupabaseClient();
+    if (!supabase) return res.json([]);
+    const { data, error } = await supabase
+      .from('kuro_pipeline_view')
+      .select('*')
+      .order('icp_score', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) { res.status(500).json({ error: (error as Error).message }); }
+});
+
+app.get('/api/deals', async (req: Request, res: Response) => {
+  try {
+    const supabase = getSupabaseClient();
+    if (!supabase) return res.json([]);
+    const { data, error } = await supabase
+      .from('atlas_deals')
+      .select('*')
+      .order('deal_value', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) { res.status(500).json({ error: (error as Error).message }); }
+});
+
+app.get('/api/drafts', async (req: Request, res: Response) => {
+  try {
+    const supabase = getSupabaseClient();
+    if (!supabase) return res.json([]);
+    const { data, error } = await supabase
+      .from('metaphor_drafts')
+      .select('*')
+      .order('last_edited', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) { res.status(500).json({ error: (error as Error).message }); }
 });
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────

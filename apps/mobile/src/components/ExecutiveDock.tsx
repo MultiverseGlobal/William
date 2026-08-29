@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { LayoutList, BarChart2 } from 'lucide-react-native';
+import { LayoutList, BarChart2, Target, Briefcase } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, {
@@ -66,14 +66,25 @@ export function ExecutiveDock({ onResetOrb }: ExecutiveDockProps) {
   return (
     <View style={styles.dockWrapper} pointerEvents="box-none">
       <View style={styles.dockBar}>
-        {/* Left: Journal (formerly Chronicle) */}
+        {/* Leads */}
         <DockItem
-          icon={LayoutList}
-          route="/chronicle"
-          isActive={pathname.startsWith('/chronicle')}
+          icon={Target}
+          route="/leads"
+          isActive={pathname.startsWith('/leads')}
           onPress={() => {
             Haptics.selectionAsync().catch(() => {});
-            router.push('/chronicle');
+            router.push('/leads');
+          }}
+        />
+
+        {/* Pipeline */}
+        <DockItem
+          icon={Briefcase}
+          route="/pipeline"
+          isActive={pathname.startsWith('/pipeline')}
+          onPress={() => {
+            Haptics.selectionAsync().catch(() => {});
+            router.push('/pipeline');
           }}
         />
 
@@ -94,6 +105,17 @@ export function ExecutiveDock({ onResetOrb }: ExecutiveDockProps) {
             />
           </View>
         </SpringButton>
+
+        {/* Context/Journal */}
+        <DockItem
+          icon={LayoutList}
+          route="/chronicle"
+          isActive={pathname.startsWith('/chronicle')}
+          onPress={() => {
+            Haptics.selectionAsync().catch(() => {});
+            router.push('/chronicle');
+          }}
+        />
 
         {/* Right: Insights */}
         <DockItem

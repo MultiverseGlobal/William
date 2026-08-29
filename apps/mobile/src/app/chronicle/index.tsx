@@ -15,49 +15,19 @@ import { Clock, MessageCircle, Mic, Star } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../../theme/colors';
 import { ExecutiveDock } from '../../components/ExecutiveDock';
-
-// Dummy journal data for UI reflection
-const DUMMY_JOURNAL = [
-  {
-    id: '1',
-    date: 'today',
-    time: '2 mins',
-    tag: 'clarity',
-    text: "i need to stop focusing on the microscopic details of the atlas migration and look at the broader architectural impact.",
-    color: Colors.sectionTeal,
-  },
-  {
-    id: '2',
-    date: 'yesterday',
-    time: '4 mins',
-    tag: 'anxiety',
-    text: "feeling overwhelmed by the sheer volume of context required for the new pipeline model. stepping back to breathe.",
-    color: Colors.sectionLavender,
-  },
-  {
-    id: '3',
-    date: 'tuesday',
-    time: '1 min',
-    tag: 'idea',
-    text: "what if we just removed the entire middle layer and let the clients talk directly to the store? might be crazy, might work.",
-    color: Colors.sectionSage,
-  },
-  {
-    id: '4',
-    date: 'monday',
-    time: '5 mins',
-    tag: 'reflection',
-    text: "good session today. feeling much more aligned with the team's core velocity.",
-    color: Colors.sectionPeach,
-  },
-];
+import { fetchDrafts } from '../../services/dbService';
 
 export default function JournalScreen() {
   const [loading, setLoading] = useState(true);
+  const [drafts, setDrafts] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => setLoading(false), 600);
+    async function load() {
+      const data = await fetchDrafts();
+      setDrafts(data);
+      setLoading(false);
+    }
+    load();
   }, []);
 
   const getTagIcon = (tag: string, color: string) => {
@@ -68,12 +38,14 @@ export default function JournalScreen() {
     }
   };
 
+  const colors = [Colors.sectionTeal, Colors.sectionLavender, Colors.sectionSage, Colors.sectionPeach];
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>your journal</Text>
+        <Text style={styles.headerTitle}>your context</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -81,26 +53,32 @@ export default function JournalScreen() {
           <ActivityIndicator style={{ marginTop: 60 }} size="small" color={Colors.textPrimary} />
         ) : (
           <View style={styles.timeline}>
-            {DUMMY_JOURNAL.map((entry) => {
-              const textColor = '#0B0D08'; 
-              
-              return (
-                <View key={entry.id} style={[styles.card, { backgroundColor: entry.color }]}>
-                  <View style={styles.cardHeader}>
-                    <View style={styles.tagBadge}>
-                      {getTagIcon(entry.tag, textColor)}
-                      <Text style={[styles.tagText, { color: textColor }]}>
-                        {entry.tag}
-                      </Text>
+            {drafts.length === 0 ? (
+              <Text style={{ color: Colors.textMuted, textAlign: 'center', marginTop: 40 }}>No drafts found.</Text>
+            ) : (
+              drafts.map((entry, idx) => {
+                const textColor = '#0B0D08';
+                const cardColor = colors[idx % colors.length];
+                
+                return (
+                  <View key={entry.id} style={[styles.card, { backgroundColor: cardColor }]}>
+                    <View style={styles.cardHeader}>
+                      <View style={styles.tagBadge}>
+                        {getTagIcon('idea', textColor)}
+                        <Text style={[styles.tagText, { color: textColor }]}>
+                          Draft
+                        </Text>
+                      </View>
+                      <View style={styles.metaData}>
+                        <Text style={[styles.metaText, { color: textColor }]}>{new Date(entry.last_edited || entry.created_at).toLocaleDateString()}</Text>
+                      </View>
                     </View>
-                    <View style={styles.metaData}>
-                      <Text style={[styles.metaText, { color: textColor }]}>{entry.date} • {entry.time}</Text>
-                    </View>
+                    <Text style={[styles.entryText, { color: textColor }]}>{entry.title}</Text>
+                    <Text style={[styles.entryText, { color: textColor, fontSize: 14, opacity: 0.8, marginTop: 8 }]}>"{entry.content?.substring(0, 100)}..."</Text>
                   </View>
-                  <Text style={[styles.entryText, { color: textColor }]}>"{entry.text}"</Text>
-                </View>
-              );
-            })}
+                );
+              })
+            )}
           </View>
         )}
       </ScrollView>

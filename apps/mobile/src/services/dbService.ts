@@ -201,6 +201,20 @@ export async function fetchChronicles(): Promise<ChronicleEntry[]> {
   return (await get<ChronicleEntry[]>('/api/chronicle')) ?? [];
 }
 
+// ─── External Database Sync (Supabase) ────────────────────────────────────────
+
+export async function fetchLeads(): Promise<any[]> {
+  return (await get<any[]>('/api/leads')) ?? [];
+}
+
+export async function fetchDeals(): Promise<any[]> {
+  return (await get<any[]>('/api/deals')) ?? [];
+}
+
+export async function fetchDrafts(): Promise<any[]> {
+  return (await get<any[]>('/api/drafts')) ?? [];
+}
+
 // ─── Realtime Subscriptions ───────────────────────────────────────────────────
 // NOTE: Realtime subscriptions previously came from Supabase channels.
 // Since the mobile client no longer holds a Supabase connection,
