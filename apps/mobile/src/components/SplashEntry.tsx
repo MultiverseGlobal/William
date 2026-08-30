@@ -1,29 +1,22 @@
-/**
- * SplashEntry — Natural AI-inspired entry screen
- *
- * Visual references:
- *  - Natural AI (Mobbin public description): opening light→dark transition,
- *    soft translucent 3D orb, wordmark fades in, then slides out upward.
- *  - Orion adaptation: warm dark bg, Orion orb (ApertureLogo), lowercase wordmark.
- *
- * Sequence (cold start):
- *   0ms   — bg black, orb scale 0.6 opacity 0
- *   300ms — orb springs to 1.0 + fade in (600ms ease-out)
- *   900ms — wordmark fades + slides up from +12px (400ms ease-out)
- *   2000ms — whole container fades out (500ms) → onComplete()
- *
- * Warm start: 280ms pulse + instant dismiss.
- */
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
-  Animated,
   StyleSheet,
   View,
   Text,
   Dimensions,
   AccessibilityInfo,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  withSequence,
+  withDelay,
+  runOnJS,
+  withRepeat,
+} from 'react-native-reanimated';
+import { Canvas, BlurMask, RadialGradient, vec, Circle } from '@shopify/react-native-skia';
 import { Colors } from '../theme/colors';
 import { OrionLogo } from './OrionLogo';
 
@@ -35,124 +28,84 @@ interface SplashEntryProps {
 }
 
 export function SplashEntry({ onComplete, isColdStart = true }: SplashEntryProps) {
-  const containerOpacity = useRef(new Animated.Value(1)).current;
-  const orbScale       = useRef(new Animated.Value(isColdStart ? 0.55 : 1)).current;
-  const orbOpacity     = useRef(new Animated.Value(isColdStart ? 0   : 1)).current;
-  const orbGlowScale   = useRef(new Animated.Value(isColdStart ? 0.4 : 0.8)).current;
-  const wordOpacity    = useRef(new Animated.Value(0)).current;
-  const wordY          = useRef(new Animated.Value(isColdStart ? 14 : 0)).current;
+  const containerOpacity = useSharedValue(1);
+  const orbScale       = useSharedValue(isColdStart ? 0.55 : 1);
+  const orbOpacity     = useSharedValue(isColdStart ? 0   : 1);
+  const wordOpacity    = useSharedValue(0);
+  const wordY          = useSharedValue(isColdStart ? 14 : 0);
+  
+  // Skia shared values for breathing cyan singularity
+  const rScale = useSharedValue(isColdStart ? 0.4 : 0.8);
 
   useEffect(() => {
-    // Respect reduced-motion system setting
     AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
       if (reduced || !isColdStart) {
-        // Immediate: show briefly, dismiss
-        orbOpacity.setValue(1);
-        orbScale.setValue(1);
-        wordOpacity.setValue(1);
-        wordY.setValue(0);
-        containerOpacity.setValue(1);
+        orbOpacity.value = 1;
+        orbScale.value = 1;
+        wordOpacity.value = 1;
+        wordY.value = 0;
+        containerOpacity.value = 1;
 
         setTimeout(() => {
-          Animated.timing(containerOpacity, {
-            toValue: 0,
-            duration: 280,
-            useNativeDriver: true,
-          }).start(() => onComplete());
+          containerOpacity.value = withTiming(0, { duration: 280 }, (finished) => {
+            if (finished) runOnJS(onComplete)();
+          });
         }, isColdStart ? 400 : 180);
         return;
       }
 
-      // ── Cold start full sequence ──────────────────────────────
-      Animated.sequence([
-        // Phase 1: Orb materializes (spring-like via timing)
-        Animated.parallel([
-          Animated.timing(orbOpacity, {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.spring(orbScale, {
-            toValue: 1,
-            damping: 12,
-            stiffness: 80,
-            useNativeDriver: true,
-          }),
-          Animated.timing(orbGlowScale, {
-            toValue: 1.15,
-            duration: 900,
-            useNativeDriver: true,
-          }),
-        ]),
+      // Cold start full sequence
+      orbOpacity.value = withTiming(1, { duration: 600 });
+      orbScale.value = withSpring(1, { damping: 12, stiffness: 80 });
+      rScale.value = withSequence(
+        withTiming(1.15, { duration: 900 }),
+        withTiming(1.0, { duration: 600 })
+      );
 
-        // Phase 2: Wordmark slides up and in (Natural AI style)
-        Animated.parallel([
-          Animated.timing(wordOpacity, {
-            toValue: 1,
-            duration: 420,
-            useNativeDriver: true,
-          }),
-          Animated.timing(wordY, {
-            toValue: 0,
-            duration: 420,
-            useNativeDriver: true,
-          }),
-          // Glow ring breathes
-          Animated.timing(orbGlowScale, {
-            toValue: 1.0,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-        ]),
+      wordOpacity.value = withDelay(600, withTiming(1, { duration: 420 }));
+      wordY.value = withDelay(600, withTiming(0, { duration: 420 }));
 
-        // Phase 3: Hold
-        Animated.delay(600),
-
-        // Phase 4: Fade out entire screen
-        Animated.timing(containerOpacity, {
-          toValue: 0,
-          duration: 460,
-          useNativeDriver: true,
-        }),
-      ]).start(({ finished }) => {
-        if (finished) onComplete();
-      });
+      containerOpacity.value = withDelay(1620, withTiming(0, { duration: 460 }, (finished) => {
+        if (finished) runOnJS(onComplete)();
+      }));
     });
   }, []);
 
-  return (
-    <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
-      {/* Ambient glow ring — Natural AI translucent orb effect */}
-      <Animated.View
-        style={[
-          styles.glowRing,
-          { transform: [{ scale: orbGlowScale }], opacity: orbOpacity },
-        ]}
-      />
+  const containerStyle = useAnimatedStyle(() => ({
+    opacity: containerOpacity.value,
+  }));
 
-      {/* Orion orb mark */}
-      <Animated.View
-        style={[
-          styles.orbContainer,
-          { opacity: orbOpacity, transform: [{ scale: orbScale }] },
-        ]}
-      >
-        <OrionLogo
-          size={72}
-          animated={false}
-        />
+  const orbStyle = useAnimatedStyle(() => ({
+    opacity: orbOpacity.value,
+    transform: [{ scale: orbScale.value }],
+  }));
+
+  const wordmarkStyle = useAnimatedStyle(() => ({
+    opacity: wordOpacity.value,
+    transform: [{ translateY: wordY.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.container, containerStyle]}>
+      {/* Skia Breathing Cyan Singularity */}
+      <View style={StyleSheet.absoluteFill}>
+        <Canvas style={styles.canvas}>
+          <Circle cx={width / 2} cy={300} r={90}>
+            <RadialGradient
+              c={vec(width / 2, 300)}
+              r={90}
+              colors={['rgba(0,240,255,0.4)', 'transparent']}
+            />
+            <BlurMask blur={30} style="normal" />
+          </Circle>
+        </Canvas>
+      </View>
+
+      <Animated.View style={[styles.orbContainer, orbStyle]}>
+        <OrionLogo size={72} animated={false} />
       </Animated.View>
 
-      {/* Wordmark — Pillowtalk lowercase brand voice */}
-      <Animated.View
-        style={[
-          styles.wordmarkContainer,
-          {
-            opacity: wordOpacity,
-            transform: [{ translateY: wordY }],
-          },
-        ]}
-      >
+      <Animated.View style={[styles.wordmarkContainer, wordmarkStyle]}>
         <Text style={styles.wordmark} accessibilityRole="header">
           orion
         </Text>
@@ -170,18 +123,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  glowRing: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.accentMuted,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 40,
+  canvas: {
+    flex: 1,
   },
   orbContainer: {
     width: 80,

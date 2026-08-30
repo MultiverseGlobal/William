@@ -3,7 +3,7 @@ import { Colors } from '../theme/colors';
 import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput,  Animated } from 'react-native';
 import { Disc, ChevronLeft, ArrowUp } from 'lucide-react-native';
-import { useOrionStore, ChatMessage } from '../store/useOrionStore';
+import { useOrionStore, AIMessage } from '../store/useOrionStore';
 
 interface ChatViewProps {
   promptText: string;
@@ -43,8 +43,17 @@ const ThinkingIndicator: React.FC = () => {
   );
 };
 
-const renderMessage = ({ item }: { item: ChatMessage }) => {
+import { LeadCard } from './generative/LeadCard';
+import { ProgressRing } from './generative/ProgressRing';
+
+const renderMessage = ({ item }: { item: AIMessage }) => {
     const isUser = item.role === 'user';
+    
+    // Find associated generative blocks
+    const blocks = useOrionStore.getState().generativeBlocks.filter(
+      (b) => b.messageId === item.id
+    );
+
     return (
       <View style={[styles.messageRow, isUser ? styles.messageRowUser : styles.messageRowAI]}>
         {!isUser && (
@@ -52,8 +61,9 @@ const renderMessage = ({ item }: { item: ChatMessage }) => {
             <Disc size={14} color={Colors.porcelainCard} />
           </View>
         )}
-        <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
-            {!isUser && !item.content ? (
+        <View style={styles.messageContentWrapper}>
+          <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAI]}>
+            {!isUser && !item.content && (!blocks || blocks.length === 0) ? (
               <ThinkingIndicator />
             ) : (
               <Text style={[styles.messageText, isUser ? styles.messageTextUser : styles.messageTextAI]}>
@@ -61,6 +71,22 @@ const renderMessage = ({ item }: { item: ChatMessage }) => {
               </Text>
             )}
           </View>
+          {blocks.map((block) => {
+            if (block.type === 'lead_card') {
+              return (
+                <LeadCard 
+                  key={block.id} 
+                  data={block.data} 
+                  onCreateLead={() => {}} 
+                />
+              );
+            }
+            if (block.type === 'progress_ring') {
+              return <ProgressRing key={block.id} jobId={block.data.jobId} />;
+            }
+            return null;
+          })}
+        </View>
       </View>
     );
   };
@@ -154,6 +180,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
+  },
+  messageContentWrapper: {
+    maxWidth: '75%',
   },
   bubble: {
     maxWidth: '75%',

@@ -52,37 +52,56 @@ export async function sendChatMessage(message: string): Promise<ChatResponse> {
   };
 }
 
-export function streamChatMessage(
-  message: string, 
+export function streamOrionChat(
+  messages: any[], 
   onChunk: (text: string) => void,
+  onToolCall: (toolCall: any) => void,
   onComplete: () => void,
   onError: () => void
 ) {
-  // Construct the URL with query parameter
-  const url = `${WEB_API_URL}/reasoner/stream`;
+  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   
-  // We can't send a body with standard EventSource GET requests, 
-  // but react-native-sse supports custom fetch options!
+  if (!supabaseUrl || !anonKey) {
+    console.error("Missing Supabase configuration");
+    onError();
+    return null;
+  }
+
+  const url = `${supabaseUrl}/functions/v1/orion-chat`;
+  
   const es = new EventSource(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${anonKey}`,
+      'apikey': anonKey
     },
-    body: JSON.stringify({ text: message })
+    body: JSON.stringify({ messages })
   });
 
   es.addEventListener('message', (event) => {
     if (event.data) {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'token' && data.token) {
-          onChunk(data.token);
-        } else if (data.type === 'done') {
-          es.close();
-          onComplete();
+        if (data.type === 'text-delta' && data.textDelta) {
+          onChunk(data.textDelta);
+        } else if (data.type === 'tool-call') {
+          onToolCall(data);
         }
       } catch (e) {
-        console.warn('Failed to parse SSE data', e);
+        // Vercel AI SDK text streams might not be JSON if using streamText directly without data protocol, 
+        // but `toDataStreamResponse` sends `0:"text"` format.
+        // For `toDataStreamResponse()`, it sends specific stream parts. Let's handle the Vercel AI SDK protocol format:
+        const raw = event.data;
+        if (raw.startsWith('0:')) {
+          onChunk(JSON.parse(raw.substring(2)));
+        } else if (raw.startsWith('9:')) {
+          onToolCall(JSON.parse(raw.substring(2)));
+        } else if (raw.startsWith('d:')) {
+          onComplete();
+          es.close();
+        }
       }
     }
   });

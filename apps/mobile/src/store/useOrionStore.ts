@@ -30,10 +30,18 @@ export interface CardItem {
   urgent?: boolean;
 }
 
-export interface ChatMessage {
+export interface AIMessage {
   id: string;
   role: 'user' | 'ai';
   content: string;
+  toolInvocations?: any[];
+}
+
+export interface GenerativeBlock {
+  id: string;
+  type: 'lead_card' | 'progress_ring' | 'draft';
+  data: any;
+  messageId: string;
 }
 
 export interface OrionFileCard {
@@ -82,7 +90,8 @@ interface OrionState {
   items: CardItem[];
   files: OrionFileCard[];
   nodes: ConstellationNode[];
-  chatMessages: ChatMessage[];
+  chatMessages: AIMessage[];
+  generativeBlocks: GenerativeBlock[];
 
   // Portrait
   portraitName: string;
@@ -109,8 +118,9 @@ interface OrionActions {
   addFile: (file: OrionFileCard) => void;
   updateFile: (id: string, updates: Partial<OrionFileCard>) => void;
   deleteLastFile: () => void;
-  addChatMessage: (msg: ChatMessage) => void;
-  updateChatMessage: (id: string, updates: Partial<ChatMessage>) => void;
+  addChatMessage: (msg: AIMessage) => void;
+  updateChatMessage: (id: string, updates: Partial<AIMessage>) => void;
+  addGenerativeBlock: (block: GenerativeBlock) => void;
   rotateHeadline: () => void;
 
   // Zoom card
@@ -148,6 +158,7 @@ export const useOrionStore = create<OrionState & OrionActions>()(
         files: [],
         nodes: [DEFAULT_NODE],
         chatMessages: [],
+        generativeBlocks: [],
         portraitName: 'Orion',
         settings: {
           voiceWake: true,
@@ -215,6 +226,11 @@ export const useOrionStore = create<OrionState & OrionActions>()(
             if (idx !== -1) {
               Object.assign(s.chatMessages[idx], updates);
             }
+          }),
+
+        addGenerativeBlock: (block) =>
+          set((s) => {
+            s.generativeBlocks.push(block);
           }),
 
         // ── Headline ──────────────────────────────────────────────────────

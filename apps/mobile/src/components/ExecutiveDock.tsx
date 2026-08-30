@@ -3,7 +3,7 @@
  * Reduced to 3 core tabs: Journal, Record (Center), Insights
  */
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import { LayoutList, BarChart2, Target, Briefcase } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -34,6 +34,7 @@ function DockItem({
   onPress: () => void;
 }) {
   const dotScale = useSharedValue(isActive ? 1 : 0);
+  const itemScale = useSharedValue(1);
 
   React.useEffect(() => {
     dotScale.value = withSpring(isActive ? 1 : 0, { damping: 16, stiffness: 200 });
@@ -42,17 +43,33 @@ function DockItem({
   const dotStyle = useAnimatedStyle(() => ({
     transform: [{ scale: dotScale.value }],
     opacity: dotScale.value,
+    shadowOpacity: dotScale.value * 0.8,
+  }));
+
+  const itemStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: itemScale.value }],
   }));
 
   return (
-    <TouchableOpacity style={styles.dockItem} onPress={onPress} activeOpacity={0.7}>
-      <Icon
-        size={22}
-        color={isActive ? Colors.textPrimary : Colors.textMuted}
-        strokeWidth={isActive ? 2.5 : 2}
-      />
+    <Pressable
+      onPressIn={() => {
+        itemScale.value = withSpring(0.88, { damping: 14, stiffness: 300 });
+      }}
+      onPressOut={() => {
+        itemScale.value = withSpring(1, { damping: 12, stiffness: 200 });
+        onPress();
+      }}
+      style={styles.dockItem}
+    >
+      <Animated.View style={itemStyle}>
+        <Icon
+          size={22}
+          color={isActive ? Colors.textPrimary : Colors.textMuted}
+          strokeWidth={isActive ? 2.5 : 2}
+        />
+      </Animated.View>
       <Animated.View style={[styles.activeDot, dotStyle]} />
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -167,6 +184,10 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: Colors.accent,
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 6,
+    elevation: 4,
   },
   centerBtn: {
     alignItems: 'center',
