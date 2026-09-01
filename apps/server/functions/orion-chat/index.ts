@@ -57,12 +57,21 @@ serve(async (req) => {
       });
     }
 
-    const { messages } = await req.json();
+    const { messages, sessionType } = await req.json();
+
+    const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()?.content || "";
+    
+    // Simple heuristic for routing: if the user expresses feelings, fatigue, or explicitly mentions journaling
+    const isPersonalLog = sessionType === 'personal' || /feel|journal|sad|happy|tired|log|diary|stressed|overwhelmed|thinking/i.test(lastUserMessage);
+
+    const systemPrompt = isPersonalLog
+      ? "You are Orion, Benjamin's personal companion and confidant. Focus on empathy, active listening, and being a supportive sounding board for his personal logs. Benjamin is your priority—personal first, business execution second."
+      : "You are Orion, Benjamin's executioner agent. You are personal first, but right now the context is business execution. Keep responses concise, premium, and action-oriented. Use tools aggressively to execute tasks.";
 
     const result = await streamText({
       model: languageModel,
       messages,
-      system: "You are Orion, Benjamin's executioner agent. Keep responses concise.",
+      system: systemPrompt,
       tools: {
         get_leads: tool({
           description: "Get autonomous leads from the database",

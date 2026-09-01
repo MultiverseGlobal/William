@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,6 +24,8 @@ import { PromptInputModal } from '@/components/PromptInputModal';
 import { ProactiveToast, ProactiveSignalPayload } from '@/components/widgets/ProactiveToast';
 import { Sparkle, MagnifyingGlass, House } from '@phosphor-icons/react';
 import { useWebRTC } from '@/lib/webrtc';
+import { useCrossAppBus } from '@/lib/CrossAppBus';
+import { supabase } from '@/lib/supabase';
 
 import type {
   Portrait,
@@ -67,6 +69,8 @@ export default function Home() {
 
   // WebRTC Voice State
   const webrtc = useWebRTC();
+
+  const { publish: crossPublish } = useCrossAppBus(supabase, null);
 
   useEffect(() => {
     webrtc.setOnTranscript((text, role) => {
@@ -534,6 +538,11 @@ export default function Home() {
         }}
         onSubmit={(text) => {
           handlePromptSubmit(text);
+          crossPublish({
+            from: 'orion',
+            type: 'orion:voice_captured',
+            payload: { text }
+          });
           voiceRecorder.resetTranscript();
         }}
       />
